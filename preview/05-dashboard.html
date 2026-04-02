@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebEcho AI — 控制台</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080A0F;--surface:#0E1117;--surface2:#161B26;--surface3:#1C2235;--border:#1E2535;--border2:#252D3D;--text:#E8EDF5;--muted:#6B7A99;--accent:#4F7EFF;--green:#00D084;--orange:#FF7A3D;--red:#FF4D6A;--purple:#7B5CFF;--pad:clamp(12px,3vw,24px);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;min-height:100vh;}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{width:200px;background:var(--surface);border-right:1px solid var(--border);padding:var(--pad) 0;flex-shrink:0;display:flex;flex-direction:column;}
+  .sidebar-logo{padding:0 var(--pad) 16px;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+  .sidebar-logo span{color:var(--accent);}
+  .sidebar-nav{display:flex;flex-direction:column;gap:2px;padding:0 8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;transition:all 0.15s;}
+  .nav-item:hover{background:var(--surface2);color:var(--text);}
+  .nav-item.active{background:rgba(79,126,255,0.12);color:var(--accent);}
+  .nav-section{padding:20px 20px 8px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-top:8px;}
+  .sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);}
+  .user-row{display:flex;align-items:center;gap:10px;}
+  .user-av{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .user-name{font-size:13px;font-weight:500;}
+  .user-plan{font-size:11px;color:var(--muted);}
+
+  .main{flex:1;padding:var(--pad);min-width:0;}
+  .top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+  .page-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.5px;}
+  .btn-new{padding:10px 20px;background:var(--accent);border:none;border-radius:10px;color:white;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:8px;}
+
+  /* STAT CARDS */
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:clamp(12px,2vw,16px);margin-bottom:24px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:clamp(16px,2vw,24px);}
+  .stat-card-label{font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+  .stat-card-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:6px;}
+  .stat-card-val.green{color:var(--green);}
+  .stat-card-val.orange{color:var(--orange);}
+  .stat-card-change{font-size:12px;color:var(--green);}
+  .stat-mini-bar{height:3px;background:var(--border2);border-radius:2px;margin-top:12px;}
+  .stat-mini-fill{height:100%;border-radius:2px;}
+
+  /* TASK TABLE */
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+  .section-link{font-size:13px;color:var(--accent);}
+  .table{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:32px;}
+  .table-head{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 100px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface2);}
+  .th{font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--muted);text-transform:uppercase;}
+  .table-row{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 100px;padding:16px 20px;border-bottom:1px solid var(--border);align-items:center;transition:background 0.15s;cursor:pointer;}
+  .table-row:last-child{border-bottom:none;}
+  .table-row:hover{background:var(--surface2);}
+  .td{font-size:13px;}
+  .site-cell{display:flex;flex-direction:column;gap:3px;}
+  .site-url{font-weight:500;}
+  .site-meta{font-size:11px;color:var(--muted);}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+  .badge.done{background:rgba(0,208,132,0.1);color:var(--green);border:1px solid rgba(0,208,132,0.2);}
+  .badge.running{background:rgba(79,126,255,0.1);color:var(--accent);border:1px solid rgba(79,126,255,0.2);}
+  .badge.failed{background:rgba(255,77,106,0.1);color:var(--red);border:1px solid rgba(255,77,106,0.2);}
+  .badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+  .complexity-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;}
+  .complexity-badge.static{background:rgba(0,208,132,0.08);color:var(--green);}
+  .complexity-badge.dynamic{background:rgba(255,122,61,0.08);color:var(--orange);}
+  .score-num{font-weight:600;}
+  .score-num.high{color:var(--green);}
+  .score-num.mid{color:var(--orange);}
+  .action-btns{display:flex;gap:6px;}
+  .btn-sm{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;border:1px solid var(--border2);background:none;color:var(--muted);transition:all 0.15s;}
+  .btn-sm:hover{border-color:var(--accent);color:var(--text);}
+  .btn-sm.primary{background:rgba(79,126,255,0.1);color:var(--accent);border-color:rgba(79,126,255,0.2);}
+
+  /* HOSTED SITES */
+  .hosted-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:clamp(12px,2vw,16px);margin-bottom:24px;}
+  .hosted-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color 0.2s;cursor:pointer;}
+  .hosted-card:hover{border-color:var(--border2);}
+  .hosted-card.active-site{border-color:rgba(0,208,132,0.3);}
+  .hosted-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+  .hosted-icon{width:36px;height:36px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .hosted-status{display:flex;align-items:center;gap:5px;font-size:11px;}
+  .status-live{color:var(--green);}
+  .status-dot-live{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .hosted-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:3px;}
+  .hosted-url{font-size:12px;color:var(--accent);margin-bottom:12px;}
+  .hosted-stats{display:flex;gap:16px;font-size:12px;color:var(--muted);}
+  .hosted-plan{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+  .plan-name{color:var(--muted);}
+  .plan-price{color:var(--orange);font-weight:500;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a href="index.html" style="text-decoration:none;color:inherit"><div class="sidebar-logo">Web<span>Echo</span> AI</div></a>
+    <div class="sidebar-nav">
+      <a href="05-dashboard.html" style="text-decoration:none;color:inherit"><div class="nav-item active">⊞ 控制台</div></a>
+      <a href="02-new-clone.html" style="text-decoration:none;color:inherit"><div class="nav-item">＋ 新建克隆</div></a>
+      <div class="nav-section">我的内容</div>
+      <div class="nav-item">📋 克隆任务</div>
+      <div class="nav-item">☁ 托管网站</div>
+      <div class="nav-section">账户</div>
+      <div class="nav-item">💳 账单</div>
+      <div class="nav-item">⚙ 设置</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-av">Z</div>
+        <div>
+          <div class="user-name">Zhang Wei</div>
+          <div class="user-plan">专业用户 · $99/月</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top-bar">
+      <div class="page-title">控制台</div>
+      <a href="02-new-clone.html"><button class="btn-new" type="button">＋ 新建克隆</button></a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-card-label">本月克隆次数 <span>📋</span></div>
+        <div class="stat-card-val">14</div>
+        <div class="stat-card-change">↑ 4 次 vs 上月</div>
+        <div class="stat-mini-bar"><div class="stat-mini-fill" style="width:70%;background:var(--accent);"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">本月花费 <span>💰</span></div>
+        <div class="stat-card-val orange">$284</div>
+        <div class="stat-card-change" style="color:var(--muted);">利润系数 3.5x（专业订阅）</div>
+        <div class="stat-mini-bar"><div class="stat-mini-fill" style="width:57%;background:var(--orange);"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">托管网站 <span>☁</span></div>
+        <div class="stat-card-val">3</div>
+        <div class="stat-card-change">全部运行正常</div>
+        <div class="stat-mini-bar"><div class="stat-mini-fill" style="width:100%;background:var(--green);"></div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">平均视觉还原度 <span>🎯</span></div>
+        <div class="stat-card-val green">84</div>
+        <div class="stat-card-change">↑ 3分 vs 上月</div>
+        <div class="stat-mini-bar"><div class="stat-mini-fill" style="width:84%;background:var(--green);"></div></div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="section-header">
+      <div class="section-title">最近克隆任务</div>
+      <span class="section-link">查看全部 →</span>
+    </div>
+    <div class="table">
+      <div class="table-head">
+        <div class="th">网站</div>
+        <div class="th">复杂度</div>
+        <div class="th">状态</div>
+        <div class="th">质量分</div>
+        <div class="th">花费</div>
+        <div class="th"></div>
+      </div>
+      <div class="table-row">
+        <div class="td site-cell"><div class="site-url">stripe.com</div><div class="site-meta">动态有后台 · 2小时前 · 已登录抓取</div></div>
+        <div class="td"><span class="complexity-badge dynamic">动态有后台</span></div>
+        <div class="td"><span class="badge done"><span class="badge-dot"></span>完成</span></div>
+        <div class="td"><span class="score-num high">87</span></div>
+        <div class="td">$35.55</div>
+        <div class="td action-btns"><a href="04-clone-result.html"><button class="btn-sm primary" type="button">预览</button></a><button class="btn-sm" type="button">下载</button></div>
+      </div>
+      <div class="table-row">
+        <div class="td site-cell"><div class="site-url">notion.so</div><div class="site-meta">静态多页 · 昨天 · 公开页面</div></div>
+        <div class="td"><span class="complexity-badge static">静态多页</span></div>
+        <div class="td"><span class="badge done"><span class="badge-dot"></span>完成</span></div>
+        <div class="td"><span class="score-num high">91</span></div>
+        <div class="td">$8.20</div>
+        <div class="td action-btns"><a href="04-clone-result.html"><button class="btn-sm primary" type="button">预览</button></a><button class="btn-sm" type="button">下载</button></div>
+      </div>
+      <div class="table-row">
+        <div class="td site-cell"><div class="site-url">linear.app</div><div class="site-meta">正在处理 · 3分钟前</div></div>
+        <div class="td"><span class="complexity-badge dynamic">动态有后台</span></div>
+        <div class="td"><span class="badge running"><span class="badge-dot" style="animation:blink 1s infinite;"></span>处理中</span></div>
+        <div class="td"><span style="color:var(--muted);">—</span></div>
+        <div class="td" style="color:var(--muted);">计量中...</div>
+        <div class="td action-btns"><a href="03-clone-progress.html"><button class="btn-sm" type="button">查看进度</button></a></div>
+      </div>
+      <div class="table-row">
+        <div class="td site-cell"><div class="site-url">framer.com</div><div class="site-meta">静态落地页 · 3天前</div></div>
+        <div class="td"><span class="complexity-badge static">静态单页</span></div>
+        <div class="td"><span class="badge done"><span class="badge-dot"></span>完成</span></div>
+        <div class="td"><span class="score-num mid">76</span></div>
+        <div class="td">$3.80</div>
+        <div class="td action-btns"><a href="04-clone-result.html"><button class="btn-sm primary" type="button">预览</button></a><button class="btn-sm" type="button">下载</button></div>
+      </div>
+      <div class="table-row">
+        <div class="td site-cell"><div class="site-url">vercel.com</div><div class="site-meta">静态多页 · 5天前</div></div>
+        <div class="td"><span class="complexity-badge static">静态多页</span></div>
+        <div class="td"><span class="badge failed"><span class="badge-dot"></span>失败</span></div>
+        <div class="td"><span style="color:var(--red);">—</span></div>
+        <div class="td" style="color:var(--green);font-size:12px;">已退款</div>
+        <div class="td action-btns"><button class="btn-sm">重试</button></div>
+      </div>
+    </div>
+
+    <!-- HOSTED SITES -->
+    <div class="section-header">
+      <div class="section-title">托管中的网站</div>
+      <span class="section-link">管理全部 →</span>
+    </div>
+    <div class="hosted-grid">
+      <div class="hosted-card active-site">
+        <div class="hosted-top">
+          <div class="hosted-icon">🏪</div>
+          <div class="hosted-status status-live"><div class="status-dot-live"></div>运行中</div>
+        </div>
+        <div class="hosted-name">我的独立站</div>
+        <div class="hosted-url">myshop.com</div>
+        <div class="hosted-stats"><span>↑ 12,480 访客/月</span><span>Ping 34ms</span></div>
+        <div class="hosted-plan"><span class="plan-name">静态成长版</span><span class="plan-price">$50/月</span></div>
+      </div>
+      <div class="hosted-card active-site">
+        <div class="hosted-top">
+          <div class="hosted-icon">📊</div>
+          <div class="hosted-status status-live"><div class="status-dot-live"></div>运行中</div>
+        </div>
+        <div class="hosted-name">SaaS 后台</div>
+        <div class="hosted-url">app.mysaas.io</div>
+        <div class="hosted-stats"><span>↑ 340 用户</span><span>Railway $43 已用</span></div>
+        <div class="hosted-plan"><span class="plan-name">动态基础版</span><span class="plan-price">$500/月</span></div>
+      </div>
+      <div class="hosted-card" style="border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:160px;cursor:pointer;">
+        <div style="text-align:center;color:var(--muted);">
+          <div style="font-size:24px;margin-bottom:8px;">＋</div>
+          <div style="font-size:13px;">部署新网站</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

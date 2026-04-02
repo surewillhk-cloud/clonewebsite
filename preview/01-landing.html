@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebEcho AI — 首页</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080A0F;
+    --surface: #0E1117;
+    --surface2: #161B26;
+    --border: #1E2535;
+    --border2: #252D3D;
+    --text: #E8EDF5;
+    --muted: #6B7A99;
+    --accent: #4F7EFF;
+    --accent2: #7B5CFF;
+    --green: #00D084;
+    --orange: #FF7A3D;
+    --red: #FF4D6A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.6; overflow-x: hidden; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 48px; height: 60px;
+    background: rgba(8,10,15,0.85); backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--text); letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta { display: flex; gap: 12px; align-items: center; }
+  .btn-ghost { padding: 7px 16px; border: 1px solid var(--border2); border-radius: 8px; color: var(--muted); font-size: 13px; background: none; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+  .btn-primary { padding: 8px 20px; background: var(--accent); border-radius: 8px; color: white; font-size: 13px; font-weight: 500; border: none; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .btn-primary:hover { background: #6B91FF; transform: translateY(-1px); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 100px 48px 80px; position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(79,126,255,0.12) 0%, transparent 70%);
+  }
+  .hero-grid {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.25;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 20%, black 0%, transparent 70%);
+  }
+  .hero-inner { max-width: 860px; text-align: center; position: relative; z-index: 1; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(79,126,255,0.3);
+    background: rgba(79,126,255,0.08); color: #7BA7FF; font-size: 12px; font-weight: 500;
+    margin-bottom: 32px; letter-spacing: 0.5px;
+  }
+  .badge-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  h1 {
+    font-family: 'Syne', sans-serif; font-size: 68px; font-weight: 800; line-height: 1.05;
+    letter-spacing: -2px; color: var(--text); margin-bottom: 24px;
+  }
+  h1 em { font-style: normal; color: var(--accent); }
+  .hero-sub { font-size: 18px; color: var(--muted); max-width: 540px; margin: 0 auto 48px; line-height: 1.7; font-weight: 300; }
+
+  /* URL INPUT BOX */
+  .url-box {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 14px; padding: 8px 8px 8px 20px;
+    display: flex; align-items: center; gap: 12px; max-width: 620px; margin: 0 auto 16px;
+    transition: border-color 0.2s;
+  }
+  .url-box:focus-within { border-color: var(--accent); }
+  .url-prefix { color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .url-input { flex: 1; background: none; border: none; color: var(--text); font-size: 15px; outline: none; font-family: 'DM Sans', sans-serif; }
+  .url-input::placeholder { color: #3A4560; }
+  .btn-clone {
+    padding: 10px 24px; background: var(--accent); color: white; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-clone:hover { background: #6B91FF; }
+  .hero-hint { color: var(--muted); font-size: 12px; }
+  .hero-hint span { color: var(--accent); }
+
+  /* STATS */
+  .stats { display: flex; justify-content: center; gap: 60px; margin-top: 64px; padding-top: 64px; border-top: 1px solid var(--border); }
+  .stat-item { text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--text); }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* HOW IT WORKS */
+  .section { padding: 100px 48px; max-width: 1100px; margin: 0 auto; }
+  .section-tag { font-size: 11px; font-weight: 600; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-bottom: 16px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; letter-spacing: -1px; margin-bottom: 16px; }
+  .section-sub { color: var(--muted); font-size: 16px; max-width: 480px; }
+
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-radius: 16px; overflow: hidden; margin-top: 56px; }
+  .step { background: var(--surface); padding: 32px; position: relative; }
+  .step-num { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; color: var(--border2); margin-bottom: 20px; line-height: 1; }
+  .step-icon { font-size: 24px; margin-bottom: 12px; }
+  .step-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .step-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .step-arrow { position: absolute; right: -1px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: var(--accent); z-index: 1; }
+
+  /* FEATURES GRID */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-radius: 16px; overflow: hidden; margin-top: 56px; }
+  .feat { background: var(--surface); padding: 32px; transition: background 0.2s; }
+  .feat:hover { background: var(--surface2); }
+  .feat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 18px; }
+  .feat-icon.blue { background: rgba(79,126,255,0.15); }
+  .feat-icon.purple { background: rgba(123,92,255,0.15); }
+  .feat-icon.green { background: rgba(0,208,132,0.15); }
+  .feat-icon.orange { background: rgba(255,122,61,0.15); }
+  .feat-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .feat-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .feat-tag { display: inline-block; margin-top: 16px; padding: 3px 10px; border-radius: 20px; font-size: 11px; background: rgba(79,126,255,0.1); color: var(--accent); }
+
+  /* PRICING PREVIEW */
+  .pricing-preview { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 56px; }
+  .price-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px;
+    position: relative; transition: border-color 0.2s;
+  }
+  .price-card:hover { border-color: var(--border2); }
+  .price-card.featured { border-color: var(--accent); background: rgba(79,126,255,0.04); }
+  .price-type { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .price-val { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; margin-bottom: 4px; }
+  .price-val sub { font-size: 16px; font-weight: 400; color: var(--muted); vertical-align: middle; }
+  .price-note { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .price-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .price-list li { font-size: 13px; color: var(--muted); display: flex; align-items: flex-start; gap: 10px; }
+  .price-list li::before { content: '→'; color: var(--accent); flex-shrink: 0; }
+  .featured-badge { position: absolute; top: 20px; right: 20px; background: var(--accent); color: white; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+
+  /* CTA */
+  .cta-section {
+    margin: 0 48px 100px; padding: 80px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(79,126,255,0.12) 0%, rgba(123,92,255,0.08) 100%);
+    border: 1px solid rgba(79,126,255,0.2); text-align: center; position: relative; overflow: hidden;
+  }
+  .cta-section h2 { font-family: 'Syne', sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -1.5px; margin-bottom: 16px; }
+  .cta-section p { color: var(--muted); font-size: 16px; margin-bottom: 40px; }
+  .cta-btns { display: flex; gap: 16px; justify-content: center; }
+  .btn-lg { padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .btn-accent { background: var(--accent); color: white; border: none; }
+  .btn-accent:hover { background: #6B91FF; transform: translateY(-2px); }
+  .btn-outline { background: none; border: 1px solid var(--border2); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); }
+
+  /* FOOTER */
+  footer { border-top: 1px solid var(--border); padding: 40px 48px; display: flex; justify-content: space-between; align-items: center; }
+  .footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; color: var(--muted); font-size: 14px; }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { color: var(--muted); font-size: 13px; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="01-landing.html" class="logo" style="text-decoration:none;color:inherit">Web<span>Echo</span> AI</a>
+  <div class="nav-links">
+    <a href="01-landing.html">产品</a>
+    <a href="06-pricing.html">定价</a>
+    <a href="index.html">导航</a>
+  </div>
+  <div class="nav-cta">
+    <a href="05-dashboard.html" style="color:inherit;text-decoration:none"><button class="btn-ghost">登录</button></a>
+    <a href="02-new-clone.html" style="color:inherit;text-decoration:none"><button class="btn-primary">免费体验 →</button></a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      AI 驱动 · 输入 URL · 10 分钟交付
+    </div>
+    <h1>任意网站<br><em>一键克隆</em></h1>
+    <p class="hero-sub">输入目标网站地址，AI 自动分析结构、识别功能、生成完整代码。无需设计、无需编程。</p>
+
+    <div class="url-box">
+      <span class="url-prefix">https://</span>
+      <input class="url-input" type="text" placeholder="输入你想克隆的网站地址..." />
+      <a href="02-new-clone.html"><button class="btn-clone" type="button">开始克隆 →</button></a>
+    </div>
+    <p class="hero-hint">新用户首次体验 <span>$9</span>，无需订阅</p>
+
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-num">10 min</div>
+        <div class="stat-label">平均交付时间</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">87%</div>
+        <div class="stat-label">视觉还原度</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">50+</div>
+        <div class="stat-label">识别第三方服务</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">Next.js</div>
+        <div class="stat-label">生成标准代码</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div style="max-width:1100px; margin:0 auto;">
+  <section class="section">
+    <div class="section-tag">工作流程</div>
+    <div class="section-title">四步完成克隆</div>
+    <div class="section-sub">从 URL 到可部署代码，全程 AI 自动化处理。</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-icon">🔗</div>
+        <div class="step-title">输入网站地址</div>
+        <div class="step-desc">粘贴目标网站 URL，系统自动检测复杂度并给出价格预估。</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-icon">🧠</div>
+        <div class="step-title">AI 深度分析</div>
+        <div class="step-desc">三层爬虫抓取页面，AI 识别结构、颜色、字体和所有第三方服务。</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-icon">⚙️</div>
+        <div class="step-title">生成完整代码</div>
+        <div class="step-desc">按区块生成 Next.js + Tailwind 组件，自动接入支付、地图等功能。</div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-icon">🚀</div>
+        <div class="step-title">下载或一键托管</div>
+        <div class="step-desc">下载代码包自行部署，或平台自动创建 GitHub 仓库 + Railway 托管。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="section-tag">核心能力</div>
+    <div class="section-title">不只是截图复制</div>
+    <div class="section-sub">识别功能、生成逻辑、处理登录墙，真正可运行的代码。</div>
+
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon blue">🔍</div>
+        <div class="feat-title">三层爬虫降级策略</div>
+        <div class="feat-desc">Firecrawl 静态抓取 → Playwright 动态渲染 → AI 纯推断。遇到强反爬自动切换，成功率 87%+。</div>
+        <span class="feat-tag">住宅代理覆盖</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon purple">🖥️</div>
+        <div class="feat-title">内嵌浏览器登录</div>
+        <div class="feat-desc">平台内置简易浏览器窗口，用户可直接操作登录，支持短信验证码、Google OAuth 等任意方式。</div>
+        <span class="feat-tag">人工验证支持</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon green">🔌</div>
+        <div class="feat-title">第三方服务识别</div>
+        <div class="feat-desc">自动识别 Stripe、地图、登录、分析等 50+ 服务，生成完整接入代码，不是空壳。</div>
+        <span class="feat-tag">50+ 服务库</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon orange">🧪</div>
+        <div class="feat-title">自动测试 + 修复</div>
+        <div class="feat-desc">Docker 容器自动运行生成代码，截图对比评分，低于 75 分自动反馈 AI 修复，最多 3 次。</div>
+        <span class="feat-tag">质量保证</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon blue">☁️</div>
+        <div class="feat-title">一键 Railway 托管</div>
+        <div class="feat-desc">平台自动创建 GitHub 仓库，部署到 Railway，绑定自定义域名，SSL 自动签发。</div>
+        <span class="feat-tag">代码归用户所有</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon purple">📱</div>
+        <div class="feat-title">APP 克隆（即将上线）</div>
+        <div class="feat-desc">上传 APP 截图或 APK，AI 分析界面结构，生成 React Native / Expo 跨平台代码。</div>
+        <span class="feat-tag">路线图 Q3</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="section-tag">定价</div>
+    <div class="section-title">按实际用量付费</div>
+    <div class="section-sub">成本实时计量，任务完成后结算。简单网站不用付复杂网站的钱。</div>
+
+    <div class="pricing-preview">
+      <div class="price-card">
+        <div class="price-type">按次计费</div>
+        <div class="price-val">$3<sub> 起</sub></div>
+        <div class="price-note">按网站复杂度动态定价 · 新用户 $9 固定体验价</div>
+        <ul class="price-list">
+          <li>静态落地页：$3 - $5</li>
+          <li>多页静态网站：$6 - $12</li>
+          <li>动态有后台网站：$19 - $49</li>
+          <li>复杂 SaaS 平台：$39 - $99</li>
+          <li>失败全额退款（退回次数）</li>
+        </ul>
+      </div>
+      <div class="price-card featured">
+        <div class="featured-badge">托管服务</div>
+        <div class="price-type">平台托管</div>
+        <div class="price-val">$30<sub>/月 起</sub></div>
+        <div class="price-note">含 Railway 费用 · 静态 $30-50 · 动态 $500-1000</div>
+        <ul class="price-list">
+          <li>自动创建 GitHub 私有仓库</li>
+          <li>Railway 自动部署 + 运维</li>
+          <li>自定义域名 + SSL 证书</li>
+          <li>代码变更自动重新部署</li>
+          <li>Railway 超额差额次月补收</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="cta-section">
+  <h2>现在就试试</h2>
+  <p>粘贴任意网站 URL，10 分钟后拿到可运行代码</p>
+  <div class="cta-btns">
+    <a href="02-new-clone.html"><button class="btn-lg btn-accent" type="button">新用户 $9 体验 →</button></a>
+    <a href="06-pricing.html"><button class="btn-lg btn-outline" type="button">查看定价详情</button></a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">WebEcho AI</div>
+  <div class="footer-links">
+    <a href="#">隐私政策</a>
+    <a href="#">服务条款</a>
+    <a href="#">文档</a>
+    <a href="#">联系我们</a>
+  </div>
+</footer>
+
+</body>
+</html>

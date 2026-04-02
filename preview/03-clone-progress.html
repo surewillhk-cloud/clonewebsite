@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebEcho AI — 克隆进度</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080A0F; --surface:#0E1117; --surface2:#161B26; --surface3:#1C2235;
+    --border:#1E2535; --border2:#252D3D; --text:#E8EDF5; --muted:#6B7A99;
+    --accent:#4F7EFF; --green:#00D084; --orange:#FF7A3D; --red:#FF4D6A; --purple:#7B5CFF;
+    --pad: clamp(12px, 3vw, 24px);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;min-height:100vh;}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:200px;background:var(--surface);border-right:1px solid var(--border);padding:var(--pad) 0;flex-shrink:0;}
+  .sidebar-logo{padding:0 var(--pad) 16px;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+  .sidebar-logo span{color:var(--accent);}
+  .sidebar-nav{display:flex;flex-direction:column;gap:2px;padding:0 8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:13px;transition:all 0.15s;}
+  .nav-item.active{background:rgba(79,126,255,0.12);color:var(--accent);}
+  .main{flex:1;padding:var(--pad);display:grid;grid-template-columns:1fr;gap:clamp(16px,3vw,24px);min-width:0;}
+  @media (min-width:900px){.main{grid-template-columns:1fr minmax(300px,380px);}}
+
+  /* LEFT COLUMN */
+  .left-col{}
+  .task-header{margin-bottom:32px;}
+  .task-badge{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:20px;background:rgba(79,126,255,0.1);border:1px solid rgba(79,126,255,0.2);color:var(--accent);font-size:12px;margin-bottom:16px;}
+  .task-badge-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:blink 1s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+  .task-url{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px;}
+  .task-url span{color:var(--accent);}
+  .task-meta{font-size:13px;color:var(--muted);}
+
+  /* PROGRESS TRACK */
+  .progress-track{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:clamp(16px,3vw,24px);margin-bottom:16px;}
+  .progress-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .progress-label span{font-size:13px;color:var(--muted);}
+  .progress-label strong{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--accent);}
+  .progress-bar{height:6px;background:var(--border2);border-radius:3px;overflow:hidden;margin-bottom:8px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:3px;width:62%;transition:width 0.5s ease;position:relative;}
+  .progress-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:40px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3));animation:shimmer 1.5s infinite;}
+  @keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+  .progress-time{font-size:12px;color:var(--muted);}
+
+  /* STEPS LIST */
+  .steps-list{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+  .step-item{display:flex;align-items:flex-start;gap:12px;padding:clamp(14px,2vw,20px) var(--pad);border-bottom:1px solid var(--border);position:relative;}
+  .step-item:last-child{border-bottom:none;}
+  .step-icon-wrap{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+  .step-icon-wrap.done{background:rgba(0,208,132,0.12);border:1px solid rgba(0,208,132,0.25);}
+  .step-icon-wrap.active{background:rgba(79,126,255,0.12);border:1px solid rgba(79,126,255,0.3);}
+  .step-icon-wrap.pending{background:var(--surface2);border:1px solid var(--border2);}
+  .step-body{flex:1;}
+  .step-name{font-size:14px;font-weight:500;margin-bottom:3px;}
+  .step-name.done{color:var(--green);}
+  .step-name.active{color:var(--text);}
+  .step-name.pending{color:var(--muted);}
+  .step-detail{font-size:12px;color:var(--muted);line-height:1.5;}
+  .step-detail.active{color:var(--muted);}
+  .step-time{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:4px;}
+  .step-check{color:var(--green);font-size:16px;margin-left:auto;align-self:center;}
+  .step-spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-left:auto;align-self:center;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .step-sub-items{padding:8px 0 0 52px;display:flex;flex-direction:column;gap:6px;}
+  .sub-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);}
+  .sub-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .sub-dot.done{background:var(--green);}
+  .sub-dot.active{background:var(--accent);animation:blink 1s infinite;}
+  .sub-dot.pending{background:var(--border2);}
+
+  /* LOG PANEL */
+  .log-panel{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:0;overflow:hidden;}
+  .log-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+  .log-title{font-size:13px;font-weight:500;color:var(--muted);}
+  .log-body{padding:16px 20px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;max-height:200px;overflow-y:auto;}
+  .log-line{display:flex;gap:12px;}
+  .log-time{color:var(--border2);flex-shrink:0;}
+  .log-msg{color:var(--muted);}
+  .log-msg.info{color:var(--accent);}
+  .log-msg.success{color:var(--green);}
+  .log-msg.warn{color:var(--orange);}
+
+  /* RIGHT COLUMN */
+  .right-col{display:flex;flex-direction:column;gap:20px;}
+  .info-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:clamp(16px,3vw,24px);}
+  .info-card-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
+  .info-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);}
+  .info-row:last-child{border-bottom:none;}
+  .info-key{font-size:12px;color:var(--muted);}
+  .info-val{font-size:13px;text-align:right;}
+  .info-val.accent{color:var(--accent);}
+  .info-val.orange{color:var(--orange);}
+  .info-val.green{color:var(--green);}
+  .tag-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;}
+  .tag-sm{padding:2px 8px;border-radius:20px;font-size:10px;background:rgba(0,208,132,0.1);color:var(--green);border:1px solid rgba(0,208,132,0.2);}
+
+  /* COST METER */
+  .cost-meter{}
+  .cost-current{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;margin-bottom:4px;}
+  .cost-current sub{font-size:14px;font-weight:400;color:var(--muted);}
+  .cost-bar-wrap{margin:12px 0;}
+  .cost-track{height:4px;background:var(--border2);border-radius:2px;}
+  .cost-fill{height:100%;width:35%;background:var(--orange);border-radius:2px;transition:width 0.5s;}
+  .cost-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;}
+  .cost-breakdown{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
+  .cost-item{display:flex;justify-content:space-between;font-size:12px;}
+  .cost-item-label{color:var(--muted);}
+  .cost-item-val{font-family:'JetBrains Mono',monospace;}
+
+  /* CANCEL */
+  .btn-cancel{width:100%;padding:11px;background:none;border:1px solid var(--border2);border-radius:10px;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .btn-cancel:hover{border-color:var(--red);color:var(--red);}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a href="index.html" style="text-decoration:none;color:inherit"><div class="sidebar-logo">Web<span>Echo</span> AI</div></a>
+    <div class="sidebar-nav">
+      <a href="05-dashboard.html" style="text-decoration:none;color:inherit"><div class="nav-item">⊞ 控制台</div></a>
+      <a href="03-clone-progress.html" style="text-decoration:none;color:inherit"><div class="nav-item active">⚡ 任务进度</div></a>
+      <a href="05-dashboard.html" style="text-decoration:none;color:inherit"><div class="nav-item">☁ 我的网站</div></a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- LEFT -->
+    <div class="left-col">
+      <div class="task-header">
+        <div class="task-badge"><span class="task-badge-dot"></span>正在处理中</div>
+        <div class="task-url"><span>stripe.com</span></div>
+        <div class="task-meta">任务 ID: task_8f3k2m · 动态有后台 · 下载代码包 · 英文输出</div>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-label">
+          <span>总体进度</span>
+          <strong>62%</strong>
+        </div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+        <div class="progress-time">已用时 4m 23s · 预计还需约 3 分钟</div>
+      </div>
+
+      <div class="steps-list">
+        <!-- DONE -->
+        <div class="step-item">
+          <div class="step-icon-wrap done">✓</div>
+          <div class="step-body">
+            <div class="step-name done">抓取页面内容</div>
+            <div class="step-detail">Firecrawl 静态抓取成功 · 捕获 14 个子页面 · 截图已保存</div>
+            <div class="step-time">00:42 完成</div>
+          </div>
+          <div class="step-check">✓</div>
+        </div>
+        <!-- DONE -->
+        <div class="step-item">
+          <div class="step-icon-wrap done">✓</div>
+          <div class="step-body">
+            <div class="step-name done">登录 & 抓取后台页面</div>
+            <div class="step-detail">内嵌浏览器会话 Cookie 已注入 · 成功抓取 Dashboard / Payments / Settings</div>
+            <div class="step-time">02:18 完成</div>
+          </div>
+          <div class="step-check">✓</div>
+        </div>
+        <!-- DONE -->
+        <div class="step-item">
+          <div class="step-icon-wrap done">✓</div>
+          <div class="step-body">
+            <div class="step-name done">AI 分析结构</div>
+            <div class="step-detail">识别 23 个区块 · Stripe、GA4、Intercom 已识别 · 颜色和字体已提取</div>
+            <div class="step-time">03:05 完成</div>
+          </div>
+          <div class="step-check">✓</div>
+        </div>
+        <!-- ACTIVE -->
+        <div class="step-item">
+          <div class="step-icon-wrap active">⚙️</div>
+          <div class="step-body">
+            <div class="step-name active">生成 Next.js 代码</div>
+            <div class="step-detail">正在并行生成组件，最多 5 个并发调用</div>
+            <div class="step-sub-items">
+              <div class="sub-item"><div class="sub-dot done"></div>Navbar.tsx</div>
+              <div class="sub-item"><div class="sub-dot done"></div>HeroSection.tsx</div>
+              <div class="sub-item"><div class="sub-dot done"></div>PricingTable.tsx</div>
+              <div class="sub-item"><div class="sub-dot active"></div>Dashboard.tsx（生成中...）</div>
+              <div class="sub-item"><div class="sub-dot active"></div>PaymentsPage.tsx（队列中）</div>
+              <div class="sub-item"><div class="sub-dot pending"></div>Footer.tsx</div>
+              <div class="sub-item"><div class="sub-dot pending"></div>Stripe 接入代码（模板）</div>
+            </div>
+          </div>
+          <div class="step-spinner"></div>
+        </div>
+        <!-- PENDING -->
+        <div class="step-item">
+          <div class="step-icon-wrap pending">🧪</div>
+          <div class="step-body">
+            <div class="step-name pending">自动测试 & 修复</div>
+            <div class="step-detail">Docker 容器构建 → 截图对比 → 评分 ≥ 75 通过</div>
+          </div>
+        </div>
+        <!-- PENDING -->
+        <div class="step-item">
+          <div class="step-icon-wrap pending">📦</div>
+          <div class="step-body">
+            <div class="step-name pending">打包交付</div>
+            <div class="step-detail">ZIP 代码包上传 Cloudflare R2 · 生成下载链接</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="log-panel">
+        <div class="log-header">
+          <span style="width:8px;height:8px;background:var(--green);border-radius:50%;animation:blink 1s infinite;display:block;"></span>
+          <span class="log-title">实时日志</span>
+        </div>
+        <div class="log-body">
+          <div class="log-line"><span class="log-time">04:23</span><span class="log-msg success">[Generator] Dashboard.tsx — 已生成 284 行，调用 Claude API 2 次</span></div>
+          <div class="log-line"><span class="log-time">04:19</span><span class="log-msg info">[Generator] PricingTable.tsx — 完成，写入 /components/PricingTable.tsx</span></div>
+          <div class="log-line"><span class="log-time">04:11</span><span class="log-msg">[Generator] 并行启动 5 个组件生成任务</span></div>
+          <div class="log-line"><span class="log-time">03:58</span><span class="log-msg success">[ThirdParty] 检测到 Stripe — 使用预置模板，跳过 AI 生成</span></div>
+          <div class="log-line"><span class="log-time">03:42</span><span class="log-msg success">[ThirdParty] 检测到 GA4 (G-XXXXXXXX) — 生成追踪脚本</span></div>
+          <div class="log-line"><span class="log-time">03:05</span><span class="log-msg info">[Analyzer] 结构分析完成 — 23 区块，3 服务已识别</span></div>
+          <div class="log-line"><span class="log-time">02:18</span><span class="log-msg success">[Auth] Cookie 注入成功 — Dashboard 页面抓取完成</span></div>
+          <div class="log-line"><span class="log-time">00:42</span><span class="log-msg success">[Scraper] Firecrawl 抓取完成 — 14 页面，层级 1</span></div>
+          <div class="log-line"><span class="log-time">00:00</span><span class="log-msg">[Task] 任务启动 — stripe.com / dynamic_basic</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-col">
+      <!-- COST METER -->
+      <div class="info-card">
+        <div class="info-card-title">💰 实时成本计量</div>
+        <div class="cost-meter">
+          <div class="cost-current">$11.38<sub> 已计量</sub></div>
+          <div style="font-size:12px;color:var(--muted);">预授权上限 $49 · 按实际用量结算</div>
+          <div class="cost-bar-wrap">
+            <div class="cost-track"><div class="cost-fill" style="width:23%"></div></div>
+            <div class="cost-labels"><span>$0</span><span>$49 上限</span></div>
+          </div>
+          <div class="cost-breakdown">
+            <div class="cost-item"><span class="cost-item-label">Decodo 代理 (1,847 req)</span><span class="cost-item-val">$0.15</span></div>
+            <div class="cost-item"><span class="cost-item-label">Firecrawl (14 页面)</span><span class="cost-item-val">$0.04</span></div>
+            <div class="cost-item"><span class="cost-item-label">Playwright 运行</span><span class="cost-item-val">$0.19</span></div>
+            <div class="cost-item"><span class="cost-item-label">Browser Session (3m)</span><span class="cost-item-val">$0.03</span></div>
+            <div class="cost-item"><span class="cost-item-label">Claude API (8次, 94K tokens)</span><span class="cost-item-val">$10.97</span></div>
+            <div class="cost-item" style="padding-top:8px;border-top:1px solid var(--border);margin-top:4px;"><span class="cost-item-label" style="color:var(--text);">当前总计</span><span class="cost-item-val" style="color:var(--orange);">$11.38</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASK INFO -->
+      <div class="info-card">
+        <div class="info-card-title">任务信息</div>
+        <div class="info-row"><span class="info-key">网站类型</span><span class="info-val orange">动态有后台</span></div>
+        <div class="info-row"><span class="info-key">爬虫层级</span><span class="info-val accent">层1 + 内嵌登录</span></div>
+        <div class="info-row"><span class="info-key">交付方式</span><span class="info-val">下载代码包</span></div>
+        <div class="info-row"><span class="info-key">输出语言</span><span class="info-val">英文</span></div>
+        <div class="info-row"><span class="info-key">识别服务</span>
+          <div class="tag-list">
+            <span class="tag-sm">Stripe</span>
+            <span class="tag-sm">GA4</span>
+            <span class="tag-sm">Intercom</span>
+          </div>
+        </div>
+        <div class="info-row"><span class="info-key">组件数量</span><span class="info-val">23 个</span></div>
+        <div class="info-row"><span class="info-key">生成进度</span><span class="info-val accent">7 / 23 完成</span></div>
+      </div>
+
+      <button class="btn-cancel">⚠ 取消任务（已产生费用不退）</button>
+    </div>
+  </main>
+</div>
+</body>
+</html>

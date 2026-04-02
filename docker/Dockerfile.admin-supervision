@@ -1,0 +1,26 @@
+# 平台管理后台监督容器 - 管理员用户容器
+# 测试所有 platform-admin API 与页面的完整性与逻辑
+#
+# 用法:
+#   1. 本地起服务: npm run dev
+#   2. 构建: docker build -f docker/Dockerfile.admin-supervision -t webecho-admin-supervision .
+#   3. 运行(Mac/Win):
+#      docker run --add-host=host.docker.internal:host-gateway \
+#        -e BASE_URL=http://host.docker.internal:4000 \
+#        -e ADMIN_EMAIL=admin@webecho.ai \
+#        -e ADMIN_PASSWORD=your-password \
+#        webecho-admin-supervision
+#   4. 自动创建管理员（需传 DATABASE_URL）:
+#      docker run ... -e ADMIN_AUTO_SEED=1 -e DATABASE_URL=postgres://... webecho-admin-supervision
+
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm install playwright --no-save
+
+COPY scripts/test-supervision ./scripts/test-supervision
+COPY scripts/seed-platform-admin.mjs ./scripts/seed-platform-admin.mjs
+
+ENTRYPOINT ["node", "scripts/test-supervision/admin-supervision-runner.mjs"]

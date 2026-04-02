@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebEcho AI — 开发阶段页面导航</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #080A0F; color: #E8EDF5; font-family: 'DM Sans', sans-serif; min-height: 100vh; padding: 24px; }
+  h1 { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  h1 span { color: #4F7EFF; }
+  p { color: #6B7A99; margin-bottom: 24px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  a { display: block; padding: 16px; background: #0E1117; border: 1px solid #1E2535; border-radius: 10px; color: #E8EDF5; text-decoration: none; font-size: 13px; transition: all 0.2s; }
+  a:hover { border-color: #4F7EFF; background: rgba(79, 126, 255, 0.08); }
+  a strong { display: block; margin-bottom: 4px; }
+  a span { font-size: 11px; color: #6B7A99; }
+</style>
+</head>
+<body>
+  <h1>Web<span>Echo</span> AI — 开发导航</h1>
+  <p>仅开发阶段使用，正式上线后此页不对外开放</p>
+  <div class="grid">
+    <a href="index.html"><strong>首页</strong><span>产品介绍、URL 输入</span></a>
+    <a href="02-new-clone.html"><strong>新建克隆</strong><span>输入 URL、登录选项</span></a>
+    <a href="03-clone-progress.html"><strong>克隆进度</strong><span>实时进度、日志</span></a>
+    <a href="04-clone-result.html"><strong>克隆结果</strong><span>质量报告、预览</span></a>
+    <a href="05-dashboard.html"><strong>控制台</strong><span>任务列表、托管</span></a>
+    <a href="06-pricing.html"><strong>定价页</strong><span>计费、套餐、FAQ</span></a>
+  </div>
+</body>
+</html>

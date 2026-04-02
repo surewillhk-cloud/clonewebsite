@@ -1,0 +1,19 @@
+# 测试监督容器 - 伪装用户 E2E 测试
+# 在隔离环境中运行 Playwright，模拟真实用户行为监督平台
+#
+# 用法:
+#   1. 本地起服务: npm run dev
+#   2. 构建: docker build -f docker/Dockerfile.supervision -t webecho-supervision .
+#   3. 运行(Mac/Win): docker run --add-host=host.docker.internal:host-gateway -e BASE_URL=http://host.docker.internal:4000 webecho-supervision
+#   或 Linux: docker run --network host -e BASE_URL=http://localhost:4000 webecho-supervision
+
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm install playwright --no-save
+
+COPY scripts/test-supervision ./scripts/test-supervision
+
+ENTRYPOINT ["node", "scripts/test-supervision/supervision-runner.mjs"]

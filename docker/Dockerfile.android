@@ -1,0 +1,32 @@
+# Android 模拟器 + mitmproxy 流量抓包容器
+# 用于 APP 克隆模式三（流量抓包）
+# 构建: docker build -f docker/Dockerfile.android -t webecho-android .
+#
+# 使用说明：
+# 1. 本镜像基于 mitmproxy 官方镜像，轻量启动
+# 2. 生产环境可替换为 budtmo/docker-android:emulator_14.0 并添加 mitmproxy
+# 3. 运行: docker run --rm -v /path/to/app.apk:/apk/app.apk -v /path/to/output:/output -e CAPTURE_DURATION=90 webecho-android
+
+FROM mitmproxy/mitmproxy:10.1.6
+
+WORKDIR /app
+
+# 复制 export addon 与入口脚本
+COPY scripts/traffic-capture/export_flows.py /scripts/export_flows.py
+COPY scripts/traffic-capture/entrypoint.sh /scripts/entrypoint.sh
+RUN chmod +x /scripts/entrypoint.sh
+
+# 创建挂载点
+RUN mkdir -p /apk /output
+
+ENV CAPTURE_DURATION=90
+
+# 轻量模式：仅 mitmdump，需宿主已运行模拟器并配置代理指向本容器 8080
+# 完整模式：需使用含 Android SDK 的 base，取消下方注释并重建
+# FROM budtmo/docker-android:emulator_14.0
+# RUN apt-get update && apt-get install -y python3-pip && pip3 install mitmproxy
+# COPY scripts/traffic-capture/export_flows.py /scripts/
+# COPY scripts/traffic-capture/entrypoint.sh /scripts/
+# ... 其余同下
+
+ENTRYPOINT ["/scripts/entrypoint.sh"]

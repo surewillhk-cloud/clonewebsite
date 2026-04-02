@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebEcho AI — 定价</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080A0F;--surface:#0E1117;--surface2:#161B26;--border:#1E2535;--border2:#252D3D;--text:#E8EDF5;--muted:#6B7A99;--accent:#4F7EFF;--green:#00D084;--orange:#FF7A3D;--red:#FF4D6A;--purple:#7B5CFF;--pad:clamp(12px,3vw,24px);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;}
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);height:56px;background:rgba(8,10,15,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;}
+  .logo span{color:var(--accent);}
+  .nav-links{display:flex;gap:32px;}
+  .nav-links a{color:var(--muted);text-decoration:none;font-size:14px;}
+  .nav-links a.active{color:var(--text);}
+  .nav-right{display:flex;gap:12px;}
+  .btn-ghost{padding:7px 16px;border:1px solid var(--border2);border-radius:8px;color:var(--muted);font-size:13px;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+  .btn-primary{padding:8px 20px;background:var(--accent);border-radius:8px;color:white;font-size:13px;font-weight:500;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+  :root{--pad:clamp(12px,3vw,24px);}
+  .page{padding:calc(60px + var(--pad)) var(--pad) var(--pad);max-width:1100px;margin:0 auto;width:100%;}
+  .page-header{text-align:center;margin-bottom:clamp(32px,5vw,48px);}
+  .page-tag{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:8px;}
+  .page-title{font-family:'Syne',sans-serif;font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:-2px;margin-bottom:12px;}
+  .page-sub{font-size:clamp(14px,1.5vw,16px);color:var(--muted);max-width:500px;margin:0 auto;line-height:1.6;}
+
+  /* PRICING LOGIC EXPLAINER */
+  .explainer{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:clamp(20px,4vw,32px);margin-bottom:clamp(24px,4vw,36px);display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:clamp(24px,4vw,40px);align-items:start;}
+  .explainer-left h3{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:12px;}
+  .explainer-left p{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:16px;}
+  .formula{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:16px 20px;font-family:monospace;font-size:14px;color:var(--text);}
+  .formula .hl{color:var(--accent);}
+  .formula .eq{color:var(--orange);}
+  .formula .comment{color:var(--muted);font-size:12px;display:block;margin-top:4px;}
+  .explainer-right{}
+  .cost-table{width:100%;border-collapse:collapse;}
+  .cost-table th{font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);}
+  .cost-table td{font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--muted);}
+  .cost-table td:last-child{text-align:right;font-weight:500;color:var(--text);}
+  .cost-table tr:last-child td{border-bottom:none;font-weight:600;color:var(--orange);}
+  .cost-table td.type{color:var(--text);font-weight:500;}
+
+  /* CLONE PRICING */
+  .section-title-wrap{margin-bottom:24px;}
+  .section-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px;}
+  .section-sub{font-size:14px;color:var(--muted);}
+
+  .clone-pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--border);border-radius:12px;overflow:hidden;margin-bottom:clamp(24px,4vw,36px);}
+  .clone-type{background:var(--surface);padding:clamp(16px,3vw,24px);}
+  .clone-type:hover{background:var(--surface2);}
+  .clone-emoji{font-size:24px;margin-bottom:16px;}
+  .clone-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px;}
+  .clone-range{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin:12px 0;}
+  .clone-range sub{font-size:13px;font-weight:400;color:var(--muted);}
+  .clone-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:16px;}
+  .clone-cost{font-size:12px;padding:8px 12px;background:var(--surface2);border-radius:6px;color:var(--muted);}
+  .clone-cost span{color:var(--orange);}
+  .clone-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px;}
+  .clone-tag{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--muted);}
+  .clone-type.highlight{background:rgba(255,122,61,0.04);border-right:none;}
+  .clone-type.highlight .clone-range{color:var(--orange);}
+
+  /* MONTHLY SUB */
+  .monthly-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:clamp(12px,2vw,20px);margin-bottom:clamp(24px,4vw,36px);}
+  .monthly-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:clamp(20px,3vw,28px);position:relative;}
+  .monthly-card.featured{border-color:var(--accent);background:rgba(79,126,255,0.03);}
+  .monthly-badge{position:absolute;top:-1px;right:20px;background:var(--accent);color:white;font-size:11px;font-weight:600;padding:4px 12px;border-radius:0 0 8px 8px;}
+  .monthly-name{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+  .monthly-price{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;margin-bottom:4px;}
+  .monthly-price sub{font-size:14px;font-weight:400;color:var(--muted);}
+  .monthly-multiplier{font-size:13px;color:var(--muted);margin-bottom:20px;}
+  .monthly-multiplier strong{color:var(--green);}
+  .monthly-features{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+  .monthly-feat{font-size:13px;color:var(--muted);display:flex;align-items:flex-start;gap:8px;}
+  .monthly-feat::before{content:'→';color:var(--accent);flex-shrink:0;}
+  .btn-monthly{width:100%;padding:11px;border:1px solid var(--border2);border-radius:10px;background:none;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+  .btn-monthly:hover{border-color:var(--accent);}
+  .btn-monthly.featured{background:var(--accent);border-color:var(--accent);color:white;}
+
+  /* HOSTING */
+  .hosting-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:clamp(16px,2vw,24px);margin-bottom:clamp(24px,4vw,36px);}
+  .hosting-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+  .hosting-section-header{padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+  .hosting-type-badge{padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.5px;}
+  .hosting-type-badge.static{background:rgba(0,208,132,0.1);color:var(--green);}
+  .hosting-type-badge.dynamic{background:rgba(255,122,61,0.1);color:var(--orange);}
+  .hosting-section-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+  .hosting-section-sub{font-size:12px;color:var(--muted);}
+  .hosting-plans{padding:16px;}
+  .hosting-plan-row{display:flex;align-items:center;justify-content:space-between;padding:16px 12px;border-radius:8px;transition:background 0.15s;cursor:pointer;}
+  .hosting-plan-row:hover{background:var(--surface2);}
+  .hosting-plan-name{font-weight:500;font-size:14px;margin-bottom:3px;}
+  .hosting-plan-desc{font-size:12px;color:var(--muted);}
+  .hosting-plan-price{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;text-align:right;}
+  .hosting-plan-price sub{font-size:12px;font-weight:400;color:var(--muted);}
+  .hosting-plan-railway{font-size:11px;color:var(--muted);text-align:right;margin-top:2px;}
+
+  /* FAQ */
+  .faq{margin-bottom:80px;}
+  .faq-item{border-bottom:1px solid var(--border);padding:20px 0;cursor:pointer;}
+  .faq-q{font-size:15px;font-weight:500;display:flex;justify-content:space-between;align-items:center;}
+  .faq-q::after{content:'+';font-size:20px;color:var(--muted);}
+  .faq-a{font-size:14px;color:var(--muted);margin-top:12px;line-height:1.7;}
+
+  /* ONBOARDING BANNER */
+  .onboarding{background:linear-gradient(135deg,rgba(79,126,255,0.1),rgba(123,92,255,0.06));border:1px solid rgba(79,126,255,0.2);border-radius:12px;padding:clamp(24px,5vw,40px);text-align:center;margin-bottom:clamp(24px,4vw,36px);}
+  .onboarding h2{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:8px;}
+  .onboarding p{color:var(--muted);font-size:15px;margin-bottom:24px;}
+  .onboarding-price{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:var(--accent);margin-bottom:4px;}
+  .onboarding-note{font-size:13px;color:var(--muted);margin-bottom:32px;}
+  .btn-lg-accent{padding:14px 40px;background:var(--accent);border:none;border-radius:10px;color:white;font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="logo" style="text-decoration:none;color:inherit">Web<span>Echo</span> AI</a>
+  <div class="nav-links">
+    <a href="index.html">产品</a>
+    <a href="06-pricing.html" class="active">定价</a>
+  </div>
+  <div class="nav-right">
+    <a href="05-dashboard.html" style="color:inherit;text-decoration:none"><button class="btn-ghost" type="button">登录</button></a>
+    <a href="02-new-clone.html" style="color:inherit;text-decoration:none"><button class="btn-primary" type="button">开始使用</button></a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <div class="page-tag">定价方案</div>
+    <div class="page-title">按用量付，不浪费</div>
+    <div class="page-sub">成本实时计量，任务完成后按实际用量结算。复杂网站不会低估，简单网站不用多付。</div>
+  </div>
+
+  <!-- EXPLAINER -->
+  <div class="explainer">
+    <div class="explainer-left">
+      <h3>为什么不用固定价格套餐？</h3>
+      <p>每次克隆任务的成本差异极大——静态落地页和复杂 SaaS 后台消耗的 AI Token、代理请求量完全不同。固定套餐要么让平台亏损，要么让用户多付。</p>
+      <p>我们选择动态定价：系统精确计量每个成本项，任务完成后乘以利润率系数收费，账单透明到每一个 API 调用。</p>
+      <div class="formula">
+        <span><span class="eq">最终价格</span> = <span class="hl">实际成本</span> × <span class="hl">利润率系数</span></span>
+        <span class="comment">// 实际成本 = Decodo 代理 + Claude Token + Playwright + 容器测试</span>
+        <span class="comment">// 利润率系数默认 5x，专业订阅用户 3.5x</span>
+      </div>
+    </div>
+    <div class="explainer-right">
+      <table class="cost-table">
+        <tr><th>网站类型</th><th>代理成本</th><th>AI Token</th><th>售价区间</th></tr>
+        <tr><td class="type">静态单页</td><td>~$0.01</td><td>~$0.40</td><td>$3 - $5</td></tr>
+        <tr><td class="type">静态多页</td><td>~$0.04</td><td>~$0.80</td><td>$6 - $12</td></tr>
+        <tr><td class="type">动态有后台</td><td>~$0.16</td><td>~$2.50</td><td>$19 - $49</td></tr>
+        <tr><td class="type">复杂 SaaS</td><td>~$0.40</td><td>~$5.50</td><td>$39 - $99</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- CLONE PRICING -->
+  <div class="section-title-wrap">
+    <div class="section-title">克隆费用（按次计费）</div>
+    <div class="section-sub">根据网站复杂度自动检测，开始前展示预估价格区间，完成后按实际用量扣款</div>
+  </div>
+  <div class="clone-pricing-grid">
+    <div class="clone-type">
+      <div class="clone-emoji">📄</div>
+      <div class="clone-name">静态落地页</div>
+      <div class="clone-range">$3<sub> - $5</sub></div>
+      <div class="clone-desc">单页展示，无登录系统，无动态 API。最快 3 分钟完成。</div>
+      <div class="clone-cost">实际成本约 <span>$0.53</span>，利润率 5x</div>
+      <div class="clone-tags"><span class="clone-tag">公开页面</span><span class="clone-tag">快速交付</span></div>
+    </div>
+    <div class="clone-type">
+      <div class="clone-emoji">🗂</div>
+      <div class="clone-name">静态多页网站</div>
+      <div class="clone-range">$6<sub> - $12</sub></div>
+      <div class="clone-desc">5 页以内，无用户系统，无数据库。企业官网、产品介绍页。</div>
+      <div class="clone-cost">实际成本约 <span>$1.13</span>，利润率 5x</div>
+      <div class="clone-tags"><span class="clone-tag">多页面</span><span class="clone-tag">导航保留</span></div>
+    </div>
+    <div class="clone-type highlight">
+      <div class="clone-emoji">⚡</div>
+      <div class="clone-name">动态有后台</div>
+      <div class="clone-range">$19<sub> - $49</sub></div>
+      <div class="clone-desc">有用户登录、Dashboard、数据库 API。需要内嵌浏览器登录辅助。</div>
+      <div class="clone-cost">实际成本约 <span>$3.44</span>，利润率 5x</div>
+      <div class="clone-tags"><span class="clone-tag">支持登录墙</span><span class="clone-tag">API 识别</span></div>
+    </div>
+    <div class="clone-type">
+      <div class="clone-emoji">🏗</div>
+      <div class="clone-name">复杂 SaaS</div>
+      <div class="clone-range">$39<sub> - $99</sub></div>
+      <div class="clone-desc">多角色权限、大量 API、复杂交互逻辑。Claude Token 消耗最高。</div>
+      <div class="clone-cost">实际成本约 <span>$7.45</span>，利润率 5x</div>
+      <div class="clone-tags"><span class="clone-tag">多角色</span><span class="clone-tag">复杂交互</span></div>
+    </div>
+  </div>
+
+  <!-- ONBOARDING -->
+  <div class="onboarding">
+    <h2>新用户首次体验</h2>
+    <div class="onboarding-price">$9</div>
+    <div class="onboarding-note">固定价格 · 仅限静态单页 · 无需订阅</div>
+    <p>完整体验克隆流程：AI 分析、代码生成、测试、下载</p>
+    <a href="02-new-clone.html"><button class="btn-lg-accent" type="button">立即体验 →</button></a>
+  </div>
+
+  <!-- MONTHLY SUBSCRIPTION -->
+  <div class="section-title-wrap">
+    <div class="section-title">月度订阅（降低利润率系数）</div>
+    <div class="section-sub">不包含克隆次数，仅降低每次任务的定价系数，高频用户省更多</div>
+  </div>
+  <div class="monthly-grid">
+    <div class="monthly-card">
+      <div class="monthly-name">轻度用户</div>
+      <div class="monthly-price">$29<sub>/月</sub></div>
+      <div class="monthly-multiplier">定价系数降至 <strong>4.0x</strong>（默认 5x）</div>
+      <div class="monthly-features">
+        <div class="monthly-feat">动态有后台克隆省约 $4-10 / 次</div>
+        <div class="monthly-feat">适合每月 3-5 次混合克隆</div>
+        <div class="monthly-feat">邮件优先支持</div>
+      </div>
+      <button class="btn-monthly">订阅轻度版</button>
+    </div>
+    <div class="monthly-card featured">
+      <div class="monthly-badge">最受欢迎</div>
+      <div class="monthly-name">专业用户</div>
+      <div class="monthly-price">$99<sub>/月</sub></div>
+      <div class="monthly-multiplier">定价系数降至 <strong>3.5x</strong></div>
+      <div class="monthly-features">
+        <div class="monthly-feat">动态克隆每次省约 $5-18</div>
+        <div class="monthly-feat">适合每月 5-15 次克隆</div>
+        <div class="monthly-feat">任务优先队列</div>
+        <div class="monthly-feat">实时客服支持</div>
+      </div>
+      <button class="btn-monthly featured">订阅专业版</button>
+    </div>
+    <div class="monthly-card">
+      <div class="monthly-name">团队版</div>
+      <div class="monthly-price">$299<sub>/月</sub></div>
+      <div class="monthly-multiplier">定价系数降至 <strong>3.0x</strong></div>
+      <div class="monthly-features">
+        <div class="monthly-feat">多人共享账号（5 席位）</div>
+        <div class="monthly-feat">适合团队每月 20+ 次克隆</div>
+        <div class="monthly-feat">专属客户经理</div>
+        <div class="monthly-feat">API 接口访问</div>
+      </div>
+      <button class="btn-monthly">订阅团队版</button>
+    </div>
+  </div>
+
+  <!-- HOSTING -->
+  <div class="section-title-wrap">
+    <div class="section-title">平台托管（月订阅）</div>
+    <div class="section-sub">自动创建 GitHub 私有仓库 + Railway 部署，托管费已包含 Railway 资源费用</div>
+  </div>
+  <div class="hosting-grid">
+    <div class="hosting-section">
+      <div class="hosting-section-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><span class="hosting-type-badge static">A 类</span><div class="hosting-section-title">静态网站</div></div>
+          <div class="hosting-section-sub">无数据库 / 无用户系统 · Railway 资源消耗低</div>
+        </div>
+      </div>
+      <div class="hosting-plans">
+        <div class="hosting-plan-row">
+          <div>
+            <div class="hosting-plan-name">静态入门</div>
+            <div class="hosting-plan-desc">单页落地页 · 月访客 &lt; 5 万 · 1 个自定义域名</div>
+          </div>
+          <div>
+            <div class="hosting-plan-price">$30<sub>/月</sub></div>
+            <div class="hosting-plan-railway">含 Railway ~$5</div>
+          </div>
+        </div>
+        <div class="hosting-plan-row">
+          <div>
+            <div class="hosting-plan-name">静态成长</div>
+            <div class="hosting-plan-desc">多页官网 · 月访客 &lt; 50 万 · 3 个自定义域名</div>
+          </div>
+          <div>
+            <div class="hosting-plan-price">$50<sub>/月</sub></div>
+            <div class="hosting-plan-railway">含 Railway ~$10</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hosting-section">
+      <div class="hosting-section-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><span class="hosting-type-badge dynamic">B 类</span><div class="hosting-section-title">动态网站</div></div>
+          <div class="hosting-section-sub">有数据库 / 用户后台 / API 服务 · Railway 费用较高</div>
+        </div>
+      </div>
+      <div class="hosting-plans">
+        <div class="hosting-plan-row">
+          <div>
+            <div class="hosting-plan-name">动态基础</div>
+            <div class="hosting-plan-desc">小型 SaaS · 注册用户 &lt; 1,000 · 3 个域名</div>
+          </div>
+          <div>
+            <div class="hosting-plan-price" style="color:var(--orange);">$500<sub>/月</sub></div>
+            <div class="hosting-plan-railway">含 Railway ~$50</div>
+          </div>
+        </div>
+        <div class="hosting-plan-row">
+          <div>
+            <div class="hosting-plan-name">动态专业</div>
+            <div class="hosting-plan-desc">中型平台 · 注册用户 &lt; 10,000 · 10 个域名</div>
+          </div>
+          <div>
+            <div class="hosting-plan-price" style="color:var(--orange);">$1,000<sub>/月</sub></div>
+            <div class="hosting-plan-railway">含 Railway ~$150</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section-title-wrap" style="margin-top:16px;">
+    <div class="section-title">常见问题</div>
+  </div>
+  <div class="faq">
+    <div class="faq-item">
+      <div class="faq-q">什么是"实际成本"，如何计量？</div>
+      <div class="faq-a">每次克隆任务中，系统精确记录所有 API 调用：Decodo 代理请求数、Firecrawl 页面数、Claude API 的输入输出 Token 数、Playwright 和 Docker 运行时长、Cloudflare R2 存储用量。任务完成后汇总为实际成本，乘以利润率系数得出最终账单，明细会发送到邮箱。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">克隆失败怎么办，钱会退吗？</div>
+      <div class="faq-a">系统自动重试最多 3 次。若仍失败，本次任务费用全额退款到支付方式。由于我们采用"完成后扣款"模式，通常你实际上不会为失败的任务付费——只有成功完成的任务才会扣款。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">支持哪些网站登录方式？</div>
+      <div class="faq-a">通过平台内嵌浏览器，支持任意登录方式：账号密码、短信验证码、Google/Apple OAuth、企业 SSO、图片 CAPTCHA。用户在内嵌浏览器中亲自完成登录，平台提取 Session Cookie 后继续抓取，不额外存储你的账号信息。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">月度订阅和按次计费怎么配合使用？</div>
+      <div class="faq-a">月度订阅仅降低每次克隆的利润率系数（默认 5x 降至 3x-4x），不包含克隆次数。每次克隆仍按实际成本 × 订阅后的系数计费。高频用户订阅后，复杂网站每次可节省 $5-18。</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

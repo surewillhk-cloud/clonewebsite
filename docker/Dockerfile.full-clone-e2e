@@ -1,0 +1,26 @@
+# 完整克隆 E2E 容器 — 创建用户、充值、执行克隆、监督
+#
+# 构建: docker build -f docker/Dockerfile.full-clone-e2e -t webecho-full-e2e .
+#
+# 运行 (Mac/Win):
+#   docker run --add-host=host.docker.internal:host-gateway \
+#     -e BASE_URL=http://host.docker.internal:4000 \
+#     -e SUPABASE_URL=https://xxx.supabase.co \
+#     -e SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+#     -e E2E_TEST_EMAIL=e2e@test.local \
+#     -e E2E_TEST_PASSWORD=TestPass123! \
+#     -e E2E_TEST_CREDITS=20 \
+#     webecho-full-e2e
+#
+# Linux: 使用 --network host 与 BASE_URL=http://localhost:4000
+
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm install playwright @supabase/supabase-js --no-save
+
+COPY scripts/test-supervision ./scripts/test-supervision
+
+ENTRYPOINT ["node", "scripts/test-supervision/full-clone-e2e.mjs"]

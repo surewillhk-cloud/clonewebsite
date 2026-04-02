@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #080A0F;
+  --surface: #0E1117;
+  --surface2: #161B26;
+  --surface3: #1C2235;
+  --border: #1E2535;
+  --border2: #252D3D;
+  --text: #E8EDF5;
+  --muted: #6B7A99;
+  --accent: #4F7EFF;
+  --accent2: #7B5CFF;
+  --green: #00D084;
+  --orange: #FF7A3D;
+  --red: #FF4D6A;
+  --purple: #7B5CFF;
+}
+
+@theme inline {
+  --font-sans: var(--font-dm-sans), var(--font-noto-sc), 'DM Sans', 'Noto Sans SC', sans-serif;
+  --font-heading: var(--font-syne), var(--font-noto-sc), 'Syne', 'Noto Sans SC', sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-surface3: var(--surface3);
+  --color-border: var(--border);
+  --color-border2: var(--border2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent2: var(--accent2);
+  --color-green: var(--green);
+  --color-orange: var(--orange);
+  --color-red: var(--red);
+  --color-purple: var(--purple);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+}

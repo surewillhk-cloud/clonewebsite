@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebEcho AI — 新建克隆</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080A0F; --surface: #0E1117; --surface2: #161B26; --surface3: #1C2235;
+    --border: #1E2535; --border2: #252D3D; --text: #E8EDF5; --muted: #6B7A99;
+    --accent: #4F7EFF; --green: #00D084; --orange: #FF7A3D; --red: #FF4D6A; --purple: #7B5CFF;
+    --pad: clamp(12px, 3vw, 24px);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-size: clamp(13px, 1.5vw, 15px); min-height:100vh; }
+
+  /* LAYOUT */
+  .app { display:flex; min-height:100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width: 200px; background:var(--surface); border-right:1px solid var(--border); padding: var(--pad) 0; flex-shrink:0; position:fixed; top:0; left:0; bottom:0; }
+  .sidebar-logo { padding:0 var(--pad) 16px; font-family:'Syne',sans-serif; font-weight:800; font-size:15px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+  .sidebar-logo span { color:var(--accent); }
+  .sidebar-nav { display:flex; flex-direction:column; gap:2px; padding:0 8px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; cursor:pointer; color:var(--muted); font-size:13px; transition:all 0.15s; }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { background:rgba(79,126,255,0.12); color:var(--accent); }
+  .nav-icon { width:16px; text-align:center; font-size:14px; }
+  .sidebar-section { padding:20px 20px 8px; font-size:10px; font-weight:600; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; margin-top:8px; }
+  .credit-bar { margin:auto 0 0; padding:20px; border-top:1px solid var(--border); }
+  .credit-label { font-size:11px; color:var(--muted); margin-bottom:8px; display:flex; justify-content:space-between; }
+  .credit-track { height:4px; background:var(--border2); border-radius:2px; }
+  .credit-fill { height:100%; width:40%; background:var(--accent); border-radius:2px; }
+  @media (max-width: 768px) {
+    .sidebar { width: 56px; padding: 12px 0; }
+    .sidebar-logo span, .sidebar-section, .nav-item span:not(.nav-icon), .credit-bar { display: none; }
+    .sidebar-logo { padding: 0 8px 12px; font-size: 12px; }
+    .nav-item { padding: 8px; justify-content: center; }
+    .main { margin-left: 56px; }
+  }
+
+  /* MAIN */
+  .main { margin-left: 200px; flex:1; padding: var(--pad); max-width: 100%; }
+  .page-header { margin-bottom: 24px; }
+  .page-title { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; letter-spacing:-0.5px; margin-bottom:6px; }
+  .page-sub { color:var(--muted); font-size:14px; }
+
+  /* STEP INDICATOR */
+  .steps-indicator { display:flex; flex-wrap: wrap; align-items:center; gap:4px; margin-bottom: 24px; }
+  .step-dot { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+  .step-dot.active { color:var(--text); }
+  .step-dot.done { color:var(--green); }
+  .dot { width:24px; height:24px; border-radius:50%; border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
+  .step-dot.active .dot { border-color:var(--accent); background:rgba(79,126,255,0.15); color:var(--accent); }
+  .step-dot.done .dot { border-color:var(--green); background:rgba(0,208,132,0.1); color:var(--green); }
+  .step-line { flex:1; height:1px; background:var(--border); margin:0 12px; max-width:80px; }
+
+  /* CARD */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding: clamp(16px, 3vw, 24px); margin-bottom: 16px; }
+  .card-title { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+  .card-sub { font-size:13px; color:var(--muted); margin-bottom:24px; }
+
+  /* URL INPUT */
+  .url-row { display:flex; gap:12px; align-items:stretch; }
+  .url-field {
+    flex:1; display:flex; align-items:center; gap:10px;
+    background:var(--surface2); border:1.5px solid var(--border2); border-radius:10px; padding:0 16px;
+    transition:border-color 0.2s;
+  }
+  .url-field:focus-within { border-color:var(--accent); }
+  .url-scheme { color:var(--muted); font-size:14px; font-family:monospace; }
+  .url-input-el { flex:1; background:none; border:none; color:var(--text); font-size:14px; outline:none; font-family:'DM Sans',sans-serif; padding:14px 0; }
+  .url-input-el::placeholder { color:#3A4560; }
+  .btn-detect { padding:0 24px; background:var(--surface2); border:1.5px solid var(--border2); border-radius:10px; color:var(--muted); font-size:13px; font-weight:500; cursor:pointer; white-space:nowrap; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+  .btn-detect:hover { border-color:var(--accent); color:var(--text); }
+
+  /* LOGIN OPTION */
+  .login-toggle { display:flex; align-items:center; gap:10px; margin-top:16px; cursor:pointer; }
+  .toggle-switch { width:36px; height:20px; background:var(--border2); border-radius:10px; position:relative; transition:background 0.2s; }
+  .toggle-switch.on { background:var(--accent); }
+  .toggle-switch::after { content:''; position:absolute; width:14px; height:14px; background:white; border-radius:50%; top:3px; left:3px; transition:left 0.2s; }
+  .toggle-switch.on::after { left:19px; }
+  .toggle-label { font-size:13px; color:var(--muted); }
+  .login-options { margin-top:16px; padding:20px; background:var(--surface2); border-radius:10px; border:1px solid var(--border2); display:none; }
+  .login-options.visible { display:block; }
+  .login-tabs { display:flex; gap:4px; margin-bottom:16px; background:var(--bg); padding:4px; border-radius:8px; width:fit-content; }
+  .login-tab { padding:6px 14px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; color:var(--muted); transition:all 0.15s; }
+  .login-tab.active { background:var(--surface2); color:var(--text); }
+  .field-group { display:flex; flex-direction:column; gap:10px; }
+  .field-row { display:flex; gap:10px; }
+  .field { display:flex; flex-direction:column; gap:6px; flex:1; }
+  .field label { font-size:12px; color:var(--muted); }
+  .field input { background:var(--bg); border:1px solid var(--border2); border-radius:8px; padding:9px 12px; color:var(--text); font-size:13px; outline:none; font-family:'DM Sans',sans-serif; transition:border-color 0.2s; }
+  .field input:focus { border-color:var(--accent); }
+  .field input::placeholder { color:#3A4560; }
+  .browser-cta { margin-top:12px; padding:12px 16px; background:rgba(79,126,255,0.08); border:1px solid rgba(79,126,255,0.2); border-radius:8px; display:flex; align-items:center; justify-content:space-between; }
+  .browser-cta-text { font-size:13px; color:var(--accent); }
+  .browser-cta-sub { font-size:11px; color:var(--muted); }
+  .btn-browser { padding:8px 16px; background:var(--accent); border:none; border-radius:8px; color:white; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; white-space:nowrap; }
+
+  /* COMPLEXITY RESULT */
+  .complexity-result { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; margin-top:16px; }
+  .complexity-card { background:var(--surface2); border:1.5px solid var(--border2); border-radius:12px; padding:20px; }
+  .complexity-card.active { border-color:var(--orange); background:rgba(255,122,61,0.06); }
+  .complexity-type { font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .complexity-name { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; margin-bottom:4px; }
+  .complexity-name.highlight { color:var(--orange); }
+  .complexity-detected { font-size:12px; color:var(--muted); }
+  .price-range { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; }
+  .price-range sub { font-size:13px; font-weight:400; color:var(--muted); }
+  .price-note { font-size:12px; color:var(--muted); margin-top:4px; }
+  .detected-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:16px; }
+  .detected-tag { padding:3px 10px; background:var(--surface3); border-radius:20px; font-size:11px; color:var(--muted); border:1px solid var(--border2); }
+  .detected-tag.found { color:var(--green); border-color:rgba(0,208,132,0.3); background:rgba(0,208,132,0.06); }
+
+  /* DELIVERY MODE */
+  .mode-select { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px; }
+  .mode-card { padding:20px; border:1.5px solid var(--border2); border-radius:12px; cursor:pointer; transition:all 0.2s; }
+  .mode-card:hover { border-color:var(--border2); background:var(--surface2); }
+  .mode-card.selected { border-color:var(--accent); background:rgba(79,126,255,0.06); }
+  .mode-icon { font-size:22px; margin-bottom:10px; }
+  .mode-name { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; margin-bottom:4px; }
+  .mode-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+  .mode-price { margin-top:12px; font-size:11px; color:var(--accent); }
+
+  /* LANGUAGE SELECT */
+  .lang-select { display:flex; gap:8px; }
+  .lang-chip { padding:7px 16px; border:1.5px solid var(--border2); border-radius:8px; font-size:13px; cursor:pointer; color:var(--muted); transition:all 0.15s; }
+  .lang-chip.selected { border-color:var(--accent); color:var(--accent); background:rgba(79,126,255,0.08); }
+
+  /* CONFIRM */
+  .confirm-bar { display:flex; align-items:center; justify-content:space-between; padding:20px 28px; background:var(--surface); border:1px solid var(--border); border-radius:14px; }
+  .confirm-summary { font-size:14px; }
+  .confirm-summary strong { color:var(--orange); }
+  .confirm-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  .btn-start { padding:12px 32px; background:var(--accent); border:none; border-radius:10px; color:white; font-size:14px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+  .btn-start:hover { background:#6B91FF; transform:translateY(-1px); }
+
+  /* BROWSER MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:200; display:flex; align-items:center; justify-content:center; padding:40px; }
+  .modal-overlay.hidden { display:none; }
+  .browser-modal { background:var(--surface); border:1px solid var(--border2); border-radius:16px; width:100%; max-width:1000px; height:680px; display:flex; flex-direction:column; overflow:hidden; }
+  .browser-header { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; background:var(--bg); }
+  .browser-dots { display:flex; gap:6px; }
+  .bdot { width:12px; height:12px; border-radius:50%; }
+  .bdot.red { background:#FF4D6A; } .bdot.yellow { background:#FFB800; } .bdot.green { background:#00D084; }
+  .browser-bar { flex:1; background:var(--surface2); border-radius:6px; padding:6px 12px; font-size:12px; color:var(--muted); font-family:monospace; display:flex; align-items:center; gap:8px; }
+  .browser-bar-lock { color:var(--green); font-size:10px; }
+  .browser-bar-url { color:var(--muted); }
+  .browser-status-bar { padding:8px 16px; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .browser-status-indicator { display:flex; align-items:center; gap:8px; font-size:12px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; }
+  .status-dot.green { background:var(--green); animation:pulse 2s infinite; }
+  .status-dot.yellow { background:#FFB800; }
+  .status-dot.red { background:var(--red); }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .browser-content { flex:1; background:#1a1a2e; position:relative; display:flex; align-items:center; justify-content:center; }
+  .browser-screenshot { width:100%; height:100%; object-fit:cover; display:flex; align-items:center; justify-content:center; }
+  .browser-placeholder { text-align:center; color:var(--muted); }
+  .browser-placeholder-icon { font-size:48px; margin-bottom:16px; opacity:0.3; }
+  .browser-placeholder-text { font-size:14px; }
+  .browser-footer { padding:12px 16px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--bg); }
+  .browser-footer-hint { font-size:12px; color:var(--muted); }
+  .btn-extract { padding:10px 24px; background:var(--green); border:none; border-radius:8px; color:var(--bg); font-size:13px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; opacity:0.5; }
+  .btn-extract.ready { opacity:1; }
+  .btn-close-modal { padding:8px 16px; background:none; border:1px solid var(--border2); border-radius:8px; color:var(--muted); font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+  .modal-actions { display:flex; gap:8px; }
+
+  /* FAKE LOGIN PAGE INSIDE BROWSER */
+  .fake-site { width:100%; height:100%; background:#fff; display:flex; flex-direction:column; }
+  .fake-nav { height:56px; background:#1a1a2e; display:flex; align-items:center; padding:0 24px; }
+  .fake-nav-logo { width:80px; height:20px; background:rgba(255,255,255,0.2); border-radius:4px; }
+  .fake-body { flex:1; display:flex; align-items:center; justify-content:center; background:#f5f5f5; }
+  .fake-login-box { background:white; border-radius:12px; padding:40px; width:360px; box-shadow:0 20px 60px rgba(0,0,0,0.1); }
+  .fake-login-title { font-size:22px; font-weight:700; color:#111; margin-bottom:4px; font-family:sans-serif; }
+  .fake-login-sub { font-size:13px; color:#888; margin-bottom:24px; font-family:sans-serif; }
+  .fake-field { margin-bottom:16px; }
+  .fake-field label { display:block; font-size:12px; color:#555; margin-bottom:6px; font-family:sans-serif; }
+  .fake-field-input { width:100%; padding:10px 14px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:14px; font-family:sans-serif; color:#333; background:#fafafa; }
+  .fake-field-input.phone-filled { border-color:#6b91ff; background:#f0f4ff; }
+  .fake-btn { width:100%; padding:12px; background:#6b91ff; border:none; border-radius:8px; color:white; font-size:14px; font-weight:600; font-family:sans-serif; cursor:pointer; margin-top:8px; }
+  .fake-google { width:100%; padding:10px; border:1.5px solid #e0e0e0; border-radius:8px; background:white; display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:#444; font-family:sans-serif; margin-bottom:16px; }
+  .fake-divider { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .fake-divider-line { flex:1; height:1px; background:#eee; }
+  .fake-divider-text { font-size:12px; color:#aaa; font-family:sans-serif; }
+  .sms-hint { font-size:11px; color:var(--orange); background:rgba(255,122,61,0.1); padding:8px 12px; border-radius:6px; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="index.html" style="text-decoration:none;color:inherit"><div class="sidebar-logo">Web<span>Echo</span> AI</div></a>
+    <div class="sidebar-nav">
+      <a href="05-dashboard.html" style="text-decoration:none;color:inherit"><div class="nav-item"><span class="nav-icon">⊞</span> 控制台</div></a>
+      <a href="02-new-clone.html" style="text-decoration:none;color:inherit"><div class="nav-item active"><span class="nav-icon">＋</span> 新建克隆</div></a>
+      <a href="05-dashboard.html" style="text-decoration:none;color:inherit"><div class="nav-item"><span class="nav-icon">☁</span> 我的网站</div></a>
+    </div>
+    <div class="sidebar-section">账单</div>
+    <div class="sidebar-nav">
+      <div class="nav-item"><span class="nav-icon">💳</span> 付款方式</div>
+      <div class="nav-item"><span class="nav-icon">📊</span> 账单明细</div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="credit-bar">
+      <div class="credit-label"><span>本月花费</span><span style="color:var(--text)">$38.50</span></div>
+      <div class="credit-track"><div class="credit-fill"></div></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <div class="page-title">新建克隆任务</div>
+      <div class="page-sub">输入目标网站地址，AI 自动分析并生成代码</div>
+    </div>
+
+    <!-- STEP INDICATOR -->
+    <div class="steps-indicator">
+      <div class="step-dot active"><div class="dot">1</div> 输入地址</div>
+      <div class="step-line"></div>
+      <div class="step-dot"><div class="dot">2</div> 确认配置</div>
+      <div class="step-line"></div>
+      <div class="step-dot"><div class="dot">3</div> 等待生成</div>
+      <div class="step-line"></div>
+      <div class="step-dot"><div class="dot">4</div> 预览交付</div>
+    </div>
+
+    <!-- STEP 1: URL -->
+    <div class="card">
+      <div class="card-title">🔗 目标网站地址</div>
+      <div class="card-sub">输入你想克隆的网站 URL，系统将自动检测复杂度和预估价格</div>
+      <div class="url-row">
+        <div class="url-field">
+          <span class="url-scheme">https://</span>
+          <input class="url-input-el" type="text" value="stripe.com" />
+        </div>
+        <button class="btn-detect">检测复杂度 →</button>
+      </div>
+
+      <!-- LOGIN WALL TOGGLE -->
+      <div class="login-toggle" onclick="toggleLogin()">
+        <div class="toggle-switch on" id="loginToggle"></div>
+        <span class="toggle-label">此网站需要登录才能看到完整内容</span>
+      </div>
+
+      <div class="login-options visible" id="loginOptions">
+        <div class="login-tabs">
+          <div class="login-tab active">账号密码</div>
+          <div class="login-tab">粘贴 Cookie</div>
+          <div class="login-tab" onclick="openBrowserModal()" style="color:var(--accent)">🖥 在浏览器内登录</div>
+        </div>
+        <div class="field-group">
+          <div class="field-row">
+            <div class="field"><label>账号 / 邮箱</label><input type="text" placeholder="user@example.com" /></div>
+            <div class="field"><label>密码</label><input type="password" placeholder="••••••••" /></div>
+          </div>
+          <div class="field"><label>登录页地址（选填，留空自动检测）</label><input type="text" placeholder="https://stripe.com/login" /></div>
+        </div>
+        <div class="browser-cta">
+          <div>
+            <div class="browser-cta-text">短信验证码 / Google 登录 / CAPTCHA？</div>
+            <div class="browser-cta-sub">使用内嵌浏览器，在平台内亲自完成登录</div>
+          </div>
+          <button class="btn-browser" onclick="openBrowserModal()">打开浏览器 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPLEXITY RESULT -->
+    <div class="card">
+      <div class="card-title">🧠 复杂度检测结果</div>
+      <div class="card-sub">系统已分析目标网站，请确认后继续</div>
+      <div class="complexity-result">
+        <div class="complexity-card active">
+          <div class="complexity-type">网站类型</div>
+          <div class="complexity-name highlight">动态有后台</div>
+          <div class="complexity-detected">检测到用户系统 + 仪表盘 + API</div>
+          <div class="detected-tags" style="margin-top:12px;">
+            <span class="detected-tag found">Stripe</span>
+            <span class="detected-tag found">用户登录</span>
+            <span class="detected-tag found">Dashboard</span>
+            <span class="detected-tag found">REST API</span>
+            <span class="detected-tag">地图</span>
+          </div>
+        </div>
+        <div class="complexity-card">
+          <div class="complexity-type">预估价格</div>
+          <div class="price-range">$19<sub> - $49</sub></div>
+          <div class="price-note">最终按实际 AI Token 用量结算</div>
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+            <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">成本拆解预估</div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--muted)">爬虫 + 代理</span><span>~$0.16</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--muted)">Claude API</span><span>~$2.50</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--muted)">测试容器</span><span>~$0.20</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:12px; padding-top:6px; border-top:1px solid var(--border); margin-top:4px;"><span style="color:var(--muted)">实际成本约</span><span style="color:var(--orange)">~$3.44</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELIVERY MODE -->
+    <div class="card">
+      <div class="card-title">📦 交付方式</div>
+      <div class="card-sub">选择你希望如何获得生成的网站</div>
+      <div class="mode-select">
+        <div class="mode-card selected">
+          <div class="mode-icon">⬇️</div>
+          <div class="mode-name">下载代码包</div>
+          <div class="mode-desc">ZIP 格式，标准 Next.js 项目，自行部署到 Vercel 或任意服务器。</div>
+          <div class="mode-price">包含在克隆费用内</div>
+        </div>
+        <div class="mode-card">
+          <div class="mode-icon">☁️</div>
+          <div class="mode-name">平台托管</div>
+          <div class="mode-desc">自动创建 GitHub 私有仓库 + Railway 部署，绑定域名，代码归你所有。</div>
+          <div class="mode-price">动态基础版 $500/月（含 Railway 费用）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LANGUAGE -->
+    <div class="card">
+      <div class="card-title">🌐 输出语言</div>
+      <div class="card-sub">生成代码中的文案语言</div>
+      <div class="lang-select">
+        <div class="lang-chip">保持原语言</div>
+        <div class="lang-chip selected">转为英文</div>
+        <div class="lang-chip">转为中文</div>
+      </div>
+    </div>
+
+    <!-- CONFIRM -->
+    <div class="confirm-bar">
+      <div class="confirm-summary">
+        预授权最高 <strong>$49</strong> · 实际按用量扣费 · 失败全额退款
+        <div class="confirm-sub">绑定的支付方式：Visa ****4242 · 信用卡预授权，任务完成后实际扣费</div>
+      </div>
+      <a href="03-clone-progress.html"><button class="btn-start" type="button">确认并开始克隆 →</button></a>
+    </div>
+  </main>
+</div>
+
+<!-- BROWSER MODAL -->
+<div class="modal-overlay hidden" id="browserModal">
+  <div class="browser-modal">
+    <div class="browser-header">
+      <div class="browser-dots"><div class="bdot red"></div><div class="bdot yellow"></div><div class="bdot green"></div></div>
+      <div class="browser-bar">
+        <span class="browser-bar-lock">🔒</span>
+        <span class="browser-bar-url">stripe.com/login</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-close-modal" onclick="closeModal()">关闭</button>
+      </div>
+    </div>
+    <div class="browser-status-bar">
+      <div class="browser-status-indicator">
+        <div class="status-dot yellow"></div>
+        <span style="font-size:12px; color:var(--muted)">检测中 · 尚未登录 · 请在下方完成登录操作</span>
+      </div>
+      <span style="font-size:11px; color:var(--muted)">会话将在 10 分钟后自动关闭</span>
+    </div>
+    <div class="browser-content">
+      <!-- 模拟网站登录页 -->
+      <div class="fake-site">
+        <div class="fake-nav"><div class="fake-nav-logo"></div></div>
+        <div class="fake-body">
+          <div class="fake-login-box">
+            <div class="fake-login-title">Sign in to Stripe</div>
+            <div class="fake-login-sub">Enter your email to get started</div>
+            <div class="fake-field">
+              <label>Email address</label>
+              <input class="fake-field-input phone-filled" type="email" value="user@example.com" />
+            </div>
+            <div class="fake-field">
+              <label>Password</label>
+              <input class="fake-field-input" type="password" placeholder="Password" />
+            </div>
+            <div class="sms-hint">💬 如果需要短信验证码，直接在此输入即可 — 平台内嵌浏览器支持任意登录方式</div>
+            <button class="fake-btn">Continue →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="browser-footer">
+      <div class="browser-footer-hint">在上方操作登录，登录成功后点击右侧按钮提取会话 Cookie</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span style="font-size:11px; color:var(--muted);">🟡 待检测登录状态</span>
+        <button class="btn-extract" id="extractBtn">已完成登录 · 开始克隆 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleLogin() {
+  const toggle = document.getElementById('loginToggle');
+  const opts = document.getElementById('loginOptions');
+  toggle.classList.toggle('on');
+  opts.classList.toggle('visible');
+}
+function openBrowserModal() {
+  document.getElementById('browserModal').classList.remove('hidden');
+}
+function closeModal() {
+  document.getElementById('browserModal').classList.add('hidden');
+}
+</script>
+</body>
+</html>
