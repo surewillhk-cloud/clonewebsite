@@ -45,7 +45,7 @@ export async function uploadZipToR2(
   taskId: string
 ): Promise<string> {
   const client = getR2Client();
-  const key = `clones/${taskId}/webecho-clone.zip`;
+  const key = `clones/${taskId}/ch007-clone.zip`;
 
   const buffer = await fs.readFile(localZipPath);
   await client.send(

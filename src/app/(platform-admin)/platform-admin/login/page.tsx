@@ -123,7 +123,7 @@ export default function PlatformAdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-lg border border-[var(--border2)] bg-[var(--bg)] px-4 py-3 text-[14px] text-[var(--text)] outline-none placeholder:text-[#3A4560] focus:border-[var(--accent)]"
-                placeholder="admin@webecho.ai"
+                placeholder="admin@ch007.ai"
                 required
               />
             </div>

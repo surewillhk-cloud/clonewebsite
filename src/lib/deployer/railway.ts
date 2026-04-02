@@ -189,7 +189,7 @@ export async function deployToRailway(
   repoFullName: string,
   envVars?: Record<string, string>
 ): Promise<RailwayDeployResult> {
-  const projectName = `webecho-${repoFullName.replace('/', '-')}`;
+  const projectName = `ch007-${repoFullName.replace('/', '-')}`;
   const projectId = await createProject(projectName);
   const environmentId = await createEnvironment(projectId);
   const { serviceId } = await createServiceFromGitHub(projectId, repoFullName);

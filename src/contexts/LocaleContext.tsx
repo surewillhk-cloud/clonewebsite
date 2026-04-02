@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 export type Locale = 'zh' | 'en';
 
-const COOKIE_NAME = 'webecho-locale';
+const COOKIE_NAME = 'ch007-locale';
 
 function setLocaleCookie(locale: Locale) {
   document.cookie = `${COOKIE_NAME}=${locale};path=/;max-age=31536000`;

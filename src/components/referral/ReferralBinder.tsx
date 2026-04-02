@@ -8,7 +8,7 @@ import { useEffect } from 'react';
  */
 export function ReferralBinder() {
   useEffect(() => {
-    const ref = typeof window !== 'undefined' ? sessionStorage.getItem('webecho-ref') : null;
+    const ref = typeof window !== 'undefined' ? sessionStorage.getItem('ch007-ref') : null;
     if (!ref) return;
 
     fetch('/api/referral/bind', {
@@ -16,7 +16,7 @@ export function ReferralBinder() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref }),
     })
-      .then((r) => (r.ok ? sessionStorage.removeItem('webecho-ref') : undefined))
+      .then((r) => (r.ok ? sessionStorage.removeItem('ch007-ref') : undefined))
       .catch(() => {});
   }, []);
 

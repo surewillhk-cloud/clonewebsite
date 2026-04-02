@@ -7,7 +7,7 @@ import { getT } from '@/translations';
 export async function generateMetadata() {
   const locale = await getLocaleFromRequest();
   const t = getT(locale);
-  return { title: `${t.platformAdmin.title} — WebEcho AI` };
+  return { title: `${t.platformAdmin.title} — CH007` };
 }
 
 const ADMIN_HREFS = [

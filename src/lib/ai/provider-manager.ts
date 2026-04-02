@@ -248,8 +248,8 @@ class OpenRouterProvider implements AIProviderClient {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${this.apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://webecho.ai',
-        'X-Title': 'WebEcho AI',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://ch007.ai',
+        'X-Title': 'CH007',
       },
       body: JSON.stringify({
         model: options?.model || 'anthropic/claude-3.5-sonnet',
@@ -272,8 +272,8 @@ class OpenRouterProvider implements AIProviderClient {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${this.apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://webecho.ai',
-        'X-Title': 'WebEcho AI',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://ch007.ai',
+        'X-Title': 'CH007',
       },
       body: JSON.stringify({
         model: options?.model || 'anthropic/claude-3.5-sonnet',

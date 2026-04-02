@@ -45,7 +45,7 @@ export async function runDockerBuild(
       '-f',
       dockerfilePath,
       '-t',
-      `webecho-test-${taskId}`,
+      `ch007-test-${taskId}`,
       '--no-cache',
       projectPath,
     ];

@@ -5,7 +5,7 @@
 import { generateSecret, generateURI, verify } from 'otplib';
 import { query, isDbConfigured } from '@/lib/db';
 
-const ISSUER = 'WebEcho AI';
+const ISSUER = 'CH007';
 
 export function createTotpSecret(email: string): { secret: string; uri: string } {
   const secret = generateSecret();

@@ -49,7 +49,7 @@ export async function deploy(input: DeployInput): Promise<DeployResult> {
     throw new Error('No zip available. Configure R2 for persistent storage.');
   }
 
-  const extractDir = path.join(os.tmpdir(), `webecho-deploy-${taskId}-${Date.now()}`);
+  const extractDir = path.join(os.tmpdir(), `ch007-deploy-${taskId}-${Date.now()}`);
   await fs.mkdir(extractDir, { recursive: true });
 
   const zipPath = path.join(extractDir, 'clone.zip');
@@ -65,7 +65,7 @@ export async function deploy(input: DeployInput): Promise<DeployResult> {
   const stat = await fs.stat(projectDir).catch(() => null);
   const workDir = stat?.isDirectory() ? projectDir : extractDir;
 
-  const repoName = `webecho-clone-${taskId.replace(/-/g, '').slice(0, 20)}`;
+  const repoName = `ch007-clone-${taskId.replace(/-/g, '').slice(0, 20)}`;
   const { fullName, cloneUrl } = await createRepository(repoName);
 
   await pushToGitHub(workDir, cloneUrl);

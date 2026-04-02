@@ -10,7 +10,7 @@ import { getAuthUserId } from '@/lib/api-auth';
 import { ensureProfile } from '@/lib/profiles';
 import { getOrCreateReferralCode, getReferredCount } from '@/lib/referral';
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://webecho.ai';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ch007.ai';
 
 export async function GET(req: NextRequest) {
   const userId = await getAuthUserId(req);

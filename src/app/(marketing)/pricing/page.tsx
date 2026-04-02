@@ -7,7 +7,7 @@ export async function generateMetadata() {
   const locale = await getLocaleFromRequest();
   const t = getT(locale);
   return {
-    title: `${t.common.pricing} — WebEcho AI`,
+    title: `${t.common.pricing} — CH007`,
     description: t.pricingPage.desc,
   };
 }

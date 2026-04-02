@@ -5,7 +5,7 @@
 import { cookies } from 'next/headers';
 import type { Locale } from '@/contexts/LocaleContext';
 
-const COOKIE_NAME = 'webecho-locale';
+const COOKIE_NAME = 'ch007-locale';
 
 export async function getLocaleFromRequest(): Promise<Locale> {
   const cookieStore = await cookies();

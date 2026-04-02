@@ -7,8 +7,8 @@
 import { Resend } from 'resend';
 
 const resendApiKey = process.env.RESEND_API_KEY;
-const fromEmail = process.env.EMAIL_FROM ?? 'WebEcho AI <noreply@webecho.ai>';
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://webecho.ai';
+const fromEmail = process.env.EMAIL_FROM ?? 'CH007 <noreply@ch007.ai>';
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://ch007.ai';
 
 function getClient(): Resend | null {
   if (!resendApiKey) return null;
@@ -36,7 +36,7 @@ export async function sendTaskComplete(
     const { error } = await client.emails.send({
       from: fromEmail,
       to: toEmail,
-      subject: 'Your clone is ready - WebEcho AI',
+      subject: 'Your clone is ready - CH007',
       html: `
         <h2>克隆完成</h2>
         <p>您的网站克隆任务已完成。</p>
@@ -68,7 +68,7 @@ export async function sendTaskFailed(
     const { error } = await client.emails.send({
       from: fromEmail,
       to: toEmail,
-      subject: 'Clone task failed - WebEcho AI',
+      subject: 'Clone task failed - CH007',
       html: `
         <h2>克隆任务失败</h2>
         <p>您的网站克隆任务未能完成。</p>
@@ -77,7 +77,7 @@ export async function sendTaskFailed(
           <li><strong>任务 ID：</strong> ${params.taskId}</li>
           ${params.reason ? `<li><strong>原因：</strong> ${params.reason}</li>` : ''}
         </ul>
-        <p>额度已退回（如已配置）。如需帮助请联系 support@webecho.ai。</p>
+        <p>额度已退回（如已配置）。如需帮助请联系 support@ch007.ai。</p>
         <p><a href="${appUrl}/dashboard">返回控制台</a></p>
       `,
     });
@@ -119,7 +119,7 @@ export async function sendAdminAlert(
     const { error } = await client.emails.send({
       from: fromEmail,
       to: toEmails,
-      subject: `[WebEcho 告警] ${params.subject}`,
+      subject: `[CH007 告警] ${params.subject}`,
       html: `
         <h2>${params.title}</h2>
         <p>${params.body}</p>
@@ -148,7 +148,7 @@ export async function sendPaymentFailed(
     const { error } = await client.emails.send({
       from: fromEmail,
       to: toEmail,
-      subject: 'Payment failed - Action required - WebEcho AI',
+      subject: 'Payment failed - Action required - CH007',
       html: `
         <h2>付款失败</h2>
         <p>您的托管订阅续费未能完成。</p>

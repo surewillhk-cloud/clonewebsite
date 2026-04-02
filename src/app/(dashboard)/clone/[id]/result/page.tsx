@@ -49,7 +49,7 @@ export default async function CloneResultPage({ params }: { params: Promise<{ id
               <span className="h-2.5 w-2.5 rounded-full bg-[var(--green)]" />
             </div>
             <div className="flex flex-1 items-center gap-2 rounded-md bg-[var(--surface2)] px-3 py-1.5 font-mono text-[12px] text-[var(--muted)]">
-              🔒 preview.webecho.ai/task_8f3k2m
+              🔒 preview.ch007.ai/task_8f3k2m
             </div>
             <div className="flex gap-1">
               <button className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--accent)] bg-[rgba(79,126,255,0.15)] text-[12px] text-[var(--accent)]">🖥</button>

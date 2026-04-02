@@ -76,7 +76,7 @@ export async function startPreviewServer(taskId: string): Promise<string> {
     throw new Error('No zip available for preview. Configure R2 or ensure local zip exists.');
   }
 
-  const extractDir = path.join(os.tmpdir(), `webecho-preview-${taskId}-${Date.now()}`);
+  const extractDir = path.join(os.tmpdir(), `ch007-preview-${taskId}-${Date.now()}`);
   await fs.mkdir(extractDir, { recursive: true });
 
   const zipPath = path.join(extractDir, 'clone.zip');

@@ -52,9 +52,9 @@ function RegisterForm() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ref: refCode }),
           });
-          if (!res.ok) sessionStorage.setItem('webecho-ref', refCode);
+          if (!res.ok) sessionStorage.setItem('ch007-ref', refCode);
         } catch {
-          sessionStorage.setItem('webecho-ref', refCode);
+          sessionStorage.setItem('ch007-ref', refCode);
         }
       }
       router.push('/dashboard');

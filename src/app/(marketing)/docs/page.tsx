@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocaleFromRequest();
   const t = getT(locale);
   return {
-    title: `${t.docs.title} | WebEcho AI`,
+    title: `${t.docs.title} | CH007`,
     description: t.docs.desc,
   };
 }

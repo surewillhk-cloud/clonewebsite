@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'WebEcho AI — 网站克隆',
+              name: 'CH007 — 网站克隆',
               description: `克隆任务 · ${url} · 复杂度 ${complexity}`,
               images: undefined,
             },

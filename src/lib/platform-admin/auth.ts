@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { query, isDbConfigured } from '@/lib/db';
 
-const ADMIN_SESSION_COOKIE = 'webecho_platform_admin';
+const ADMIN_SESSION_COOKIE = 'ch007_platform_admin';
 const SESSION_MAX_AGE = 60 * 60 * 8;
 
 export interface PlatformAdmin {

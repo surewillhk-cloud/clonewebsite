@@ -69,7 +69,7 @@ ${summary}
 
 function getDefaultServicesCode(): string {
   return `/**
- * API 服务层 - 由 WebEcho AI 根据流量抓包生成
+ * API 服务层 - 由 CH007 根据流量抓包生成
  */
 
 const BASE_URL = '';

@@ -10,7 +10,7 @@ export interface HealthCheckResult {
   error?: string;
 }
 
-const CACHE_KEY = 'webecho_health_cache';
+const CACHE_KEY = 'ch007_health_cache';
 const CACHE_TTL_MS = 60_000; // 1 分钟
 
 interface CachedResult {

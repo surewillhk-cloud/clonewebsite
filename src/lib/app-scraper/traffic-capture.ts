@@ -13,7 +13,7 @@ import { getClaudeClient } from '@/lib/claude/client';
 import { PROMPTS } from '@/lib/claude/prompts';
 import type { ApiEndpoint } from '@/types/app-analyzer';
 
-const ANDROID_IMAGE = process.env.ANDROID_EMULATOR_IMAGE ?? 'webecho-android';
+const ANDROID_IMAGE = process.env.ANDROID_EMULATOR_IMAGE ?? 'ch007-android';
 const CAPTURE_DURATION_SEC = parseInt(process.env.TRAFFIC_CAPTURE_DURATION ?? '90', 10);
 
 export interface TrafficCaptureResult {
@@ -59,7 +59,7 @@ export async function captureTrafficFromApk(
     );
   }
 
-  const workDir = path.join(os.tmpdir(), `webecho-traffic-${taskId}`);
+  const workDir = path.join(os.tmpdir(), `ch007-traffic-${taskId}`);
   const apkPath = path.join(workDir, 'app.apk');
   const outputDir = path.join(workDir, 'output');
 

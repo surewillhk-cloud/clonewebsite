@@ -63,7 +63,7 @@ async function readStringsXml(dir: string): Promise<string> {
  * @returns 解压输出目录，失败时抛出
  */
 async function decompileApk(apkPath: string): Promise<string> {
-  const outDir = path.join(os.tmpdir(), `webecho-apk-${Date.now()}`);
+  const outDir = path.join(os.tmpdir(), `ch007-apk-${Date.now()}`);
   await ensureDir(outDir);
 
   const result = spawnSync(APKTOOL_PATH, ['d', apkPath, '-o', outDir, '-f'], {
@@ -84,7 +84,7 @@ async function decompileApk(apkPath: string): Promise<string> {
  */
 export async function analyzeApk(r2Key: string): Promise<AppScreenAnalysis> {
   const buffer = await downloadApkFromR2(r2Key);
-  const apkPath = path.join(os.tmpdir(), `webecho-${Date.now()}.apk`);
+  const apkPath = path.join(os.tmpdir(), `ch007-${Date.now()}.apk`);
   try {
     await fs.writeFile(apkPath, buffer);
     const outDir = await decompileApk(apkPath);

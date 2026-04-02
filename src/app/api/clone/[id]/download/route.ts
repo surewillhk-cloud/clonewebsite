@@ -55,10 +55,10 @@ export async function GET(
 
   if (status.localZipPath) {
     try {
-      // 防止路径遍历：仅允许 /tmp 下的 webecho 相关路径
+      // 防止路径遍历：仅允许 /tmp 下的 ch007 相关路径
       const resolved = path.resolve(status.localZipPath);
       const tmpDir = path.resolve(os.tmpdir());
-      if (!resolved.startsWith(tmpDir) || !resolved.includes('webecho')) {
+      if (!resolved.startsWith(tmpDir) || !resolved.includes('ch007')) {
         throw new Error('Invalid path');
       }
       const stat = await fs.stat(resolved);
@@ -69,7 +69,7 @@ export async function GET(
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': 'application/zip',
-          'Content-Disposition': `attachment; filename="webecho-clone-${id}.zip"`,
+          'Content-Disposition': `attachment; filename="ch007-clone-${id}.zip"`,
           'Content-Length': String(buffer.length),
         },
       });

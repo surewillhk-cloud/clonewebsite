@@ -20,7 +20,7 @@ function getOctokit(): Octokit {
   }
   return new Octokit({
     auth: GITHUB_TOKEN,
-    userAgent: 'webechoai-deployer',
+    userAgent: 'ch007ai-deployer',
   });
 }
 
@@ -35,12 +35,12 @@ export async function createRepository(
     ? await octokit.repos.createInOrg({
         org: GITHUB_ORG,
         name: repoName,
-        description: description ?? 'Cloned by WebEcho AI',
+        description: description ?? 'Cloned by CH007',
         private: true,
       })
     : await octokit.repos.createForAuthenticatedUser({
         name: repoName,
-        description: description ?? 'Cloned by WebEcho AI',
+        description: description ?? 'Cloned by CH007',
         private: true,
       });
 
@@ -58,8 +58,8 @@ export async function pushToGitHub(
   const git = simpleGit(projectDir);
 
   await git.init();
-  await git.addConfig('user.email', 'deploy@webecho.ai');
-  await git.addConfig('user.name', 'WebEcho AI Deploy');
+  await git.addConfig('user.email', 'deploy@ch007.ai');
+  await git.addConfig('user.name', 'CH007 Deploy');
 
   const gitDir = path.join(projectDir, '.git');
   await fs.mkdir(gitDir, { recursive: true });
@@ -71,7 +71,7 @@ export async function pushToGitHub(
   await git.addConfig('credential.helper', `store --file ${path.join(gitDir, 'credentials')}`);
 
   await git.add('.');
-  await git.commit('Initial commit - WebEcho AI clone');
+  await git.commit('Initial commit - CH007 clone');
   await git.branch(['-M', 'main']);
   await git.addRemote('origin', cloneUrl);
   await git.push(['-u', 'origin', 'main']);

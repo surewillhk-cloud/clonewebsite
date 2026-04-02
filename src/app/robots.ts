@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://webecho.ai";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ch007.ai";
 
 export default function robots(): MetadataRoute.Robots {
   return {
