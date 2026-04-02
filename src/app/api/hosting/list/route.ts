@@ -4,35 +4,28 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { getAuthUserId } from '@/lib/api-auth';
+import { query, isDbConfigured } from '@/lib/db';
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
+    if (!isDbConfigured()) {
       return NextResponse.json({ sites: [] });
     }
 
-    const admin = createAdminClient();
-    const { data: rows, error } = await (admin.from('hosted_sites') as any)
-      .select('id, clone_task_id, railway_deployment_url, custom_domain, status, hosting_plan, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      return NextResponse.json({ sites: [] });
-    }
+    const result = await query(
+      `SELECT id, clone_task_id, railway_deployment_url, custom_domain, status, hosting_plan, created_at
+       FROM hosted_sites WHERE user_id = $1 ORDER BY created_at DESC`,
+      [userId]
+    );
 
     return NextResponse.json({
-      sites: (rows ?? []).map((r: Record<string, unknown>) => ({
+      sites: result.rows.map((r: Record<string, unknown>) => ({
         id: r.id,
         cloneTaskId: r.clone_task_id,
         deploymentUrl: r.railway_deployment_url,

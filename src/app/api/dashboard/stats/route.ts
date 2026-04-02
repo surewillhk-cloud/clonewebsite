@@ -3,17 +3,15 @@
  * 控制台概览统计（本月克隆、托管数、平均还原度、任务趋势）
  */
 
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { isSupabaseConfigured } from '@/lib/supabase/admin';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUserId } from '@/lib/api-auth';
+import { query, isDbConfigured } from '@/lib/db';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id ?? 'anon';
+    const userId = await getAuthUserId(req) ?? 'anon';
 
-    if (!isSupabaseConfigured()) {
+    if (!isDbConfigured()) {
       return NextResponse.json({
         cloneCountThisMonth: 0,
         hostedSiteCount: 0,
@@ -32,22 +30,17 @@ export async function GET() {
     const startStr = startDaysAgo.toISOString().slice(0, 10);
 
     const [tasksRes, hostedRes] = await Promise.all([
-      supabase
-        .from('clone_tasks')
-        .select('id, created_at, quality_score, status')
-        .eq('user_id', userId)
-        .gte('created_at', `${startStr}T00:00:00Z`),
-      supabase
-        .from('hosted_sites')
-        .select('*', { count: 'exact', head: true }),
+      query<{ id: string; created_at: string; quality_score: number | null; status: string }>(
+        'SELECT id, created_at, quality_score, status FROM clone_tasks WHERE user_id = $1 AND created_at >= $2',
+        [userId, `${startStr}T00:00:00Z`]
+      ),
+      query<{ count: number }>(
+        'SELECT COUNT(*) as count FROM hosted_sites',
+        []
+      ),
     ]);
 
-    const tasks = (tasksRes.data ?? []) as Array<{
-      id: string;
-      created_at: string;
-      quality_score: number | null;
-      status: string;
-    }>;
+    const tasks = tasksRes.rows;
 
     const cloneCountThisMonth = tasks.filter(
       (t) => t.created_at >= `${startOfMonthStr}T00:00:00Z`
@@ -78,7 +71,7 @@ export async function GET() {
 
     return NextResponse.json({
       cloneCountThisMonth,
-      hostedSiteCount: hostedRes.count ?? 0,
+      hostedSiteCount: Number(hostedRes.rows[0]?.count ?? 0),
       avgQualityScore,
       tasksPerDay,
     });

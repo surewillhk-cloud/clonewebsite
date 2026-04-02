@@ -4,18 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthUserId } from '@/lib/api-auth';
 import { createApiKey, listApiKeys } from '@/lib/api-keys';
 import { z } from 'zod';
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+export async function GET(req: NextRequest) {
+  const userId = await getAuthUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const keys = await listApiKeys(user.id);
+  const keys = await listApiKeys(userId);
   return NextResponse.json({ keys });
 }
 
@@ -24,9 +23,8 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const userId = await getAuthUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -39,7 +37,7 @@ export async function POST(req: NextRequest) {
   const parsed = createSchema.safeParse(body);
   const name = parsed.success ? parsed.data.name : undefined;
 
-  const result = await createApiKey(user.id, name);
+  const result = await createApiKey(userId, name);
   if (!result) {
     return NextResponse.json({ error: 'Failed to create API key' }, { status: 500 });
   }

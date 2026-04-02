@@ -3,7 +3,7 @@
  */
 
 import { createHash, randomBytes } from 'crypto';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 
 const PREFIX = 'we_';
 const KEY_BYTES = 32;
@@ -18,98 +18,84 @@ function generateKey(): string {
   return `${PREFIX}${raw}`;
 }
 
-/**
- * 创建新 API Key，返回完整 key（仅此一次可获取）
- */
 export async function createApiKey(userId: string, name?: string): Promise<{ id: string; key: string; prefix: string } | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isDbConfigured()) return null;
+
   const key = generateKey();
   const keyHash = hashKey(key);
   const prefix = `${key.slice(0, PREFIX.length + 8)}...`;
 
   try {
-    const supabase = createAdminClient();
-    const { data, error } = await (supabase.from('api_keys') as any)
-      .insert({
-        user_id: userId,
-        key_prefix: prefix,
-        key_hash: keyHash,
-        name: name ?? 'API Key',
-      })
-      .select('id')
-      .single();
+    const result = await query(
+      `INSERT INTO api_keys (user_id, key_prefix, key_hash, name, created_at)
+       VALUES ($1, $2, $3, $4, NOW()) RETURNING id`,
+      [userId, prefix, keyHash, name ?? 'API Key']
+    );
 
-    if (error) throw error;
-    return { id: data.id, key, prefix };
+    if (result.rows.length === 0) return null;
+    return { id: result.rows[0].id as string, key, prefix };
   } catch {
     return null;
   }
 }
 
-/**
- * 根据完整 key 验证并返回 userId
- */
 export async function validateApiKey(key: string): Promise<{ userId: string } | null> {
-  if (!isSupabaseConfigured() || !key?.startsWith(PREFIX)) return null;
+  if (!isDbConfigured() || !key?.startsWith(PREFIX)) return null;
+
   const keyHash = hashKey(key);
 
   try {
-    const supabase = createAdminClient();
-    const { data, error } = await (supabase.from('api_keys') as any)
-      .select('user_id')
-      .eq('key_hash', keyHash)
-      .single();
+    const result = await query(
+      'SELECT user_id FROM api_keys WHERE key_hash = $1',
+      [keyHash]
+    );
 
-    if (error || !data) return null;
+    if (result.rows.length === 0) return null;
 
-    await (supabase.from('api_keys') as any)
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('key_hash', keyHash);
+    const userId = result.rows[0].user_id as string;
 
-    return { userId: data.user_id };
+    await query(
+      'UPDATE api_keys SET last_used_at = NOW() WHERE key_hash = $1',
+      [keyHash]
+    );
+
+    return { userId };
   } catch {
     return null;
   }
 }
 
-/**
- * 列出用户的所有 API Key（不含完整 key）
- */
 export async function listApiKeys(userId: string): Promise<Array<{ id: string; prefix: string; name: string; createdAt: string; lastUsedAt: string | null }>> {
-  if (!isSupabaseConfigured()) return [];
-  try {
-    const supabase = createAdminClient();
-    const { data, error } = await (supabase.from('api_keys') as any)
-      .select('id, key_prefix, name, created_at, last_used_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+  if (!isDbConfigured()) return [];
 
-    if (error) return [];
-    return (data ?? []).map((r: any) => ({
-      id: r.id,
-      prefix: r.key_prefix,
-      name: r.name,
-      createdAt: r.created_at,
-      lastUsedAt: r.last_used_at,
+  try {
+    const result = await query(
+      `SELECT id, key_prefix, name, created_at, last_used_at 
+       FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC`,
+      [userId]
+    );
+
+    return result.rows.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      prefix: r.key_prefix as string,
+      name: r.name as string,
+      createdAt: r.created_at as string,
+      lastUsedAt: r.last_used_at as string | null,
     }));
   } catch {
     return [];
   }
 }
 
-/**
- * 撤销 API Key
- */
 export async function revokeApiKey(userId: string, keyId: string): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
-  try {
-    const supabase = createAdminClient();
-    const { error } = await (supabase.from('api_keys') as any)
-      .delete()
-      .eq('id', keyId)
-      .eq('user_id', userId);
+  if (!isDbConfigured()) return false;
 
-    return !error;
+  try {
+    const result = await query(
+      'DELETE FROM api_keys WHERE id = $1 AND user_id = $2',
+      [keyId, userId]
+    );
+    return (result.rowCount ?? 0) > 0;
   } catch {
     return false;
   }

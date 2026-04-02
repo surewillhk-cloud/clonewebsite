@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { deploy, isDeployerConfigured } from '@/lib/deployer';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { sendPaymentFailed, sendAdminAlert, isEmailConfigured } from '@/lib/email/send';
 import { getAdminEmails } from '@/lib/monitoring/get-admin-emails';
 
@@ -101,21 +101,25 @@ export async function POST(req: NextRequest) {
       const inv = event.data.object as { id: string; subscription?: string | { id: string }; amount_paid?: number };
       console.log('[stripe/webhook] invoice.payment_succeeded', inv.id);
       const subId = typeof inv.subscription === 'string' ? inv.subscription : inv.subscription?.id;
-      if (subId && isSupabaseConfigured()) {
-        const supabase = createAdminClient();
-        const { data: site } = await (supabase.from('hosted_sites') as any)
-          .select('id, user_id')
-          .eq('stripe_subscription_id', subId)
-          .single();
+      if (subId && isDbConfigured()) {
+        const siteResult = await query(
+          'SELECT id, user_id FROM hosted_sites WHERE stripe_subscription_id = $1',
+          [subId]
+        );
+        const site = siteResult.rows[0];
         if (site) {
-          await (supabase.from('billing_events') as any).insert({
-            user_id: site.user_id,
-            event_type: 'hosting_charge',
-            amount: inv.amount_paid ?? 0,
-            stripe_invoice_id: inv.id,
-            related_site_id: site.id,
-            metadata: { subscription: subId },
-          });
+          await query(
+            `INSERT INTO billing_events (user_id, event_type, amount, stripe_invoice_id, related_site_id, metadata) 
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              site.user_id,
+              'hosting_charge',
+              inv.amount_paid ?? 0,
+              inv.id,
+              site.id,
+              JSON.stringify({ subscription: subId }),
+            ]
+          );
           console.log('[stripe/webhook] billing_events recorded', inv.id);
         }
       }
@@ -138,16 +142,13 @@ export async function POST(req: NextRequest) {
 
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription;
-      if (isSupabaseConfigured()) {
-        const supabase = createAdminClient();
-        const { error } = await (supabase.from('hosted_sites') as any)
-          .update({
-            status: 'suspended',
-            suspended_at: new Date().toISOString(),
-          })
-          .eq('stripe_subscription_id', sub.id);
-        if (error) {
-          console.warn('[stripe/webhook] Failed to suspend hosted_sites:', error);
+      if (isDbConfigured()) {
+        const updateResult = await query(
+          `UPDATE hosted_sites SET status = 'suspended', suspended_at = $1 WHERE stripe_subscription_id = $2`,
+          [new Date().toISOString(), sub.id]
+        );
+        if (updateResult.rowCount === 0) {
+          console.warn('[stripe/webhook] No hosted_sites found to suspend');
         } else {
           console.log('[stripe/webhook] Hosted site suspended', sub.id);
         }

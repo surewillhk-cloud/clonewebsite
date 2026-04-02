@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { signIn } from 'next-auth/react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 function RegisterForm() {
@@ -26,14 +26,23 @@ function RegisterForm() {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const { error: signUpError } = await supabase.auth.signUp({
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Registration failed');
+        return;
+      }
+      const signInResult = await signIn('credentials', {
         email,
         password,
-        options: { emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard` },
+        redirect: false,
       });
-      if (signUpError) {
-        setError(signUpError.message);
+      if (signInResult?.error) {
+        setError(signInResult.error);
         return;
       }
       if (refCode) {

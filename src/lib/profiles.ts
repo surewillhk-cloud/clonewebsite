@@ -1,9 +1,9 @@
 /**
  * profiles 表操作
- * 用户额度、自动创建/更新
+ * 用户额度管理
  */
 
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 
 export interface ProfileRow {
   id: string;
@@ -16,51 +16,63 @@ export interface ProfileRow {
   referred_by?: string | null;
 }
 
-/**
- * 确保用户有 profile 记录，若无则创建
- */
 export async function ensureProfile(
   userId: string,
   email?: string | null
 ): Promise<ProfileRow | null> {
-  if (!isSupabaseConfigured()) return null;
+  if (!isDbConfigured()) return null;
+
   try {
-    const supabase = createAdminClient();
-    const { data: existing } = await (supabase.from('profiles') as any)
-      .select('id, email, credits, credits_expire_at, stripe_customer_id, preferred_language, referral_code, referred_by')
-      .eq('id', userId)
-      .single();
+    const existing = await query(
+      `SELECT id, email, credits, credits_expire_at, stripe_customer_id, 
+              preferred_language, referral_code, referred_by 
+       FROM profiles WHERE id = $1`,
+      [userId]
+    );
 
-    if (existing) return existing as ProfileRow;
-
-    const { data: inserted, error } = await (supabase.from('profiles') as any)
-      .insert({
-        id: userId,
-        email: email ?? null,
-        credits: 0,
-        preferred_language: 'zh',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select('id, email, credits, credits_expire_at, stripe_customer_id, preferred_language, referral_code, referred_by')
-      .single();
-
-    if (error) {
-      if ((error as { code?: string }).code === '23505') {
-        return ((await (supabase.from('profiles') as any).select('*').eq('id', userId).single()) as { data: ProfileRow }).data;
-      }
-      throw error;
+    if (existing.rows.length > 0) {
+      return existing.rows[0] as ProfileRow;
     }
-    return inserted as ProfileRow;
-  } catch {
+
+    await query(
+      `INSERT INTO profiles (id, email, credits, preferred_language, created_at, updated_at)
+       VALUES ($1, $2, 0, 'zh', NOW(), NOW())`,
+      [userId, email ?? null]
+    );
+
+    const inserted = await query(
+      `SELECT id, email, credits, credits_expire_at, stripe_customer_id, 
+              preferred_language, referral_code, referred_by 
+       FROM profiles WHERE id = $1`,
+      [userId]
+    );
+
+    return inserted.rows[0] as ProfileRow;
+  } catch (err) {
+    console.error('[profiles] ensureProfile error:', err);
     return null;
   }
 }
 
-/**
- * 获取用户当前额度
- */
 export async function getCredits(userId: string): Promise<number> {
   const profile = await ensureProfile(userId);
   return profile?.credits ?? 0;
+}
+
+export async function updateCredits(
+  userId: string,
+  delta: number
+): Promise<boolean> {
+  if (!isDbConfigured()) return false;
+
+  try {
+    await query(
+      `UPDATE profiles SET credits = credits + $1, updated_at = NOW() WHERE id = $2`,
+      [delta, userId]
+    );
+    return true;
+  } catch (err) {
+    console.error('[profiles] updateCredits error:', err);
+    return false;
+  }
 }

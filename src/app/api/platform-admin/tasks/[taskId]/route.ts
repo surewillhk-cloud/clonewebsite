@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/platform-admin/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query } from '@/lib/db';
 
 export async function GET(
   req: NextRequest,
@@ -22,28 +22,23 @@ export async function GET(
       return NextResponse.json({ error: 'taskId required' }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
+    const taskResult = await query(
+      `SELECT id, user_id, target_url, clone_type, complexity, credits_used, status, quality_score, 
+       delivery_mode, target_language, scraper_layer, error_message, created_at, completed_at, stripe_payment_intent_id 
+       FROM clone_tasks WHERE id = $1`,
+      [taskId]
+    );
+    const task = taskResult.rows[0];
 
-    const { data: task, error: taskError } = await db
-      .from('clone_tasks')
-      .select(
-        'id, user_id, target_url, clone_type, complexity, credits_used, status, quality_score, ' +
-        'delivery_mode, target_language, scraper_layer, error_message, created_at, completed_at, stripe_payment_intent_id'
-      )
-      .eq('id', taskId)
-      .single();
-
-    if (taskError || !task) {
+    if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const { data: cost } = await db
-      .from('task_costs')
-      .select('*')
-      .eq('task_id', taskId)
-      .single();
+    const costResult = await query(
+      'SELECT * FROM task_costs WHERE task_id = $1',
+      [taskId]
+    );
+    const cost = costResult.rows[0];
 
     return NextResponse.json({
       task: {

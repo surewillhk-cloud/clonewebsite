@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/platform-admin/auth';
 import { verifyTotpCode, saveAdminTotpSecret } from '@/lib/platform-admin/totp';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,13 +20,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'totpCode required' }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
-    const { data: pending } = await (supabase as any)
-      .from('platform_admin_totp_pending')
-      .select('secret')
-      .eq('admin_id', admin.id)
-      .gt('expires_at', new Date().toISOString())
-      .single();
+    const pendingResult = await query(
+      'SELECT secret FROM platform_admin_totp_pending WHERE admin_id = $1 AND expires_at > $2',
+      [admin.id, new Date().toISOString()]
+    );
+    const pending = pendingResult.rows[0];
 
     if (!pending?.secret) {
       return NextResponse.json({ error: 'Setup expired or not started' }, { status: 400 });
@@ -38,10 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     await saveAdminTotpSecret(admin.id, pending.secret);
-    await (supabase as any)
-      .from('platform_admin_totp_pending')
-      .delete()
-      .eq('admin_id', admin.id);
+    await query('DELETE FROM platform_admin_totp_pending WHERE admin_id = $1', [admin.id]);
 
     return NextResponse.json({ ok: true });
   } catch (e) {

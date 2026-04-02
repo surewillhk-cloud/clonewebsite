@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/platform-admin/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,17 +19,15 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
     const offset = (page - 1) * limit;
 
-    const supabase = createAdminClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: users, error, count } = await (supabase as any)
-      .from('profiles')
-      .select('id, email, credits, credits_expire_at, stripe_customer_id, created_at', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const countResult = await query('SELECT COUNT(*) as count FROM profiles');
+    const count = parseInt(countResult.rows[0]?.count ?? '0', 10);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const usersResult = await query(
+      `SELECT id, email, credits, credits_expire_at, stripe_customer_id, created_at 
+       FROM profiles ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    const users = usersResult.rows;
 
     const items = (users || []).map((u: Record<string, unknown>) => ({
       id: u.id,
@@ -42,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       items,
-      total: count ?? 0,
+      total: count,
       page,
       limit,
     });

@@ -1,9 +1,8 @@
 /**
  * 定价历史快照与回滚
- * 每次保存定价时写入完整快照，支持回滚到任意历史配置
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { logConfigChange } from './config-logs';
 import type { PricingConfig } from './pricing-config';
 
@@ -18,29 +17,33 @@ export async function savePricingSnapshot(
   config: PricingConfig,
   createdBy: string
 ): Promise<void> {
-  const supabase = createAdminClient();
-  await (supabase as any).from('pricing_history').insert({
-    config,
-    created_by: createdBy,
-  });
+  if (!isDbConfigured()) return;
+
+  await query(
+    `INSERT INTO pricing_history (config, created_by, created_at) VALUES ($1, $2, NOW())`,
+    [JSON.stringify(config), createdBy]
+  );
 }
 
 export async function getPricingHistory(params?: {
   limit?: number;
   offset?: number;
 }): Promise<PricingHistoryEntry[]> {
+  if (!isDbConfigured()) return [];
+
   const limit = params?.limit ?? 30;
   const offset = params?.offset ?? 0;
+
   try {
-    const supabase = createAdminClient();
-    const { data } = await (supabase as any)
-      .from('pricing_history')
-      .select('id, config, created_by, created_at')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-    return (data || []).map((r: Record<string, unknown>) => ({
-      id: r.id,
-      config: r.config as PricingConfig,
+    const result = await query(
+      `SELECT id, config, created_by, created_at FROM pricing_history 
+       ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+
+    return result.rows.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      config: typeof r.config === 'string' ? JSON.parse(r.config) : r.config,
       createdBy: r.created_by as string,
       createdAt: r.created_at as string,
     }));
@@ -49,22 +52,26 @@ export async function getPricingHistory(params?: {
   }
 }
 
-/** 回滚到指定历史快照，将 config 写回 platform_config */
 export async function rollbackToSnapshot(
   snapshotId: string,
   updatedBy: string
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!isDbConfigured()) return { ok: false, error: 'Database not configured' };
+
   try {
-    const supabase = createAdminClient();
-    const { data: snapshot, error: fetchErr } = await (supabase as any)
-      .from('pricing_history')
-      .select('config')
-      .eq('id', snapshotId)
-      .single();
-    if (fetchErr || !snapshot?.config) {
+    const snapshotResult = await query(
+      'SELECT config FROM pricing_history WHERE id = $1',
+      [snapshotId]
+    );
+
+    if (snapshotResult.rows.length === 0) {
       return { ok: false, error: 'Snapshot not found' };
     }
-    const config = snapshot.config as PricingConfig;
+
+    const snapshot = snapshotResult.rows[0];
+    const config = typeof snapshot.config === 'string' 
+      ? JSON.parse(snapshot.config) 
+      : snapshot.config as PricingConfig;
 
     const keys = [
       { key: 'pricing.profitMultiplier', value: config.profitMultiplier },
@@ -78,14 +85,11 @@ export async function rollbackToSnapshot(
     ];
 
     for (const k of keys) {
-      await (supabase as any).from('platform_config').upsert(
-        {
-          key: k.key,
-          value: k.value,
-          updated_by: updatedBy,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'key' }
+      await query(
+        `INSERT INTO platform_config (key, value, updated_by, updated_at)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $2, updated_by = $3, updated_at = NOW()`,
+        [k.key, JSON.stringify(k.value), updatedBy]
       );
     }
 

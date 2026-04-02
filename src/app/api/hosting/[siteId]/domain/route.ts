@@ -5,8 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { getAuthUserId } from '@/lib/api-auth';
+import { query, isDbConfigured } from '@/lib/db';
 
 const schema = z.object({
   domain: z.string().min(1),
@@ -19,15 +19,12 @@ export async function POST(
   try {
     const { siteId } = await params;
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
+    if (!isDbConfigured()) {
       return NextResponse.json(
         { error: 'Hosted sites require Supabase' },
         { status: 503 }
@@ -43,28 +40,23 @@ export async function POST(
       );
     }
 
-    const admin = createAdminClient();
-    const { data: site, error } = await admin
-      .from('hosted_sites')
-      .select('railway_deployment_url')
-      .eq('id', siteId)
-      .eq('user_id', user.id)
-      .single();
+    const { rows: [site] } = await query<{ railway_deployment_url?: string | null }>(
+      'SELECT railway_deployment_url FROM hosted_sites WHERE id = $1 AND user_id = $2',
+      [siteId, userId]
+    );
 
-    if (error || !site) {
+    if (!site) {
       return NextResponse.json({ error: 'Site not found' }, { status: 404 });
     }
 
-    const row = site as { railway_deployment_url?: string | null };
-    const cnameTarget = row.railway_deployment_url
-      ? new URL(row.railway_deployment_url).hostname
+    const cnameTarget = site.railway_deployment_url
+      ? new URL(site.railway_deployment_url).hostname
       : 'xxx.up.railway.app';
 
-    // @ts-expect-error Supabase table types may not match generated schema
-    await admin.from('hosted_sites').update({
-      custom_domain: parsed.data.domain,
-      domain_verified: false,
-    }).eq('id', siteId);
+    await query(
+      'UPDATE hosted_sites SET custom_domain = $1, domain_verified = false WHERE id = $2',
+      [parsed.data.domain, siteId]
+    );
 
     return NextResponse.json({
       cnameTarget,

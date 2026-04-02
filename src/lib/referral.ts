@@ -1,14 +1,14 @@
 /**
- * 推荐计划：推荐码生成、绑定、奖励
+ * 推荐计划
  */
 
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { REFERRAL_REWARD_CREDITS } from '@/constants/plans';
 
 const REFERRAL_CODE_LENGTH = 8;
 
 function generateCode(): string {
-  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'; // 易读，无混淆字符
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
   let s = '';
   for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) {
     s += chars[Math.floor(Math.random() * chars.length)];
@@ -16,30 +16,36 @@ function generateCode(): string {
   return s;
 }
 
-/**
- * 生成或获取用户推荐码（幂等）
- */
 export async function getOrCreateReferralCode(userId: string): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
-  try {
-    const supabase = createAdminClient();
-    const { data: existing } = await (supabase.from('profiles') as any)
-      .select('referral_code')
-      .eq('id', userId)
-      .single();
+  if (!isDbConfigured()) return null;
 
-    if (existing?.referral_code) return existing.referral_code;
+  try {
+    const existing = await query(
+      'SELECT referral_code FROM profiles WHERE id = $1',
+      [userId]
+    );
+
+    if (existing.rows[0]?.referral_code) {
+      return existing.rows[0].referral_code;
+    }
 
     let code = generateCode();
     for (let retry = 0; retry < 5; retry++) {
-      const { error } = await (supabase.from('profiles') as any)
-        .update({ referral_code: code, updated_at: new Date().toISOString() })
-        .eq('id', userId)
-        .is('referral_code', null);
+      const result = await query(
+        `UPDATE profiles SET referral_code = $1, updated_at = NOW() 
+         WHERE id = $2 AND referral_code IS NULL RETURNING referral_code`,
+        [code, userId]
+      );
 
-      if (!error) return code;
-      if ((error as { code?: string }).code === '23505') code = generateCode();
-      else throw error;
+      if (result.rows.length > 0) return code;
+
+      const conflict = await query(
+        'SELECT id FROM profiles WHERE referral_code = $1',
+        [code]
+      );
+      if (conflict.rows.length > 0) {
+        code = generateCode();
+      }
     }
     return null;
   } catch {
@@ -47,42 +53,35 @@ export async function getOrCreateReferralCode(userId: string): Promise<string | 
   }
 }
 
-/**
- * 根据推荐码查找推荐人 user id
- */
 export async function getReferrerByCode(code: string): Promise<string | null> {
-  if (!isSupabaseConfigured() || !code?.trim()) return null;
+  if (!isDbConfigured() || !code?.trim()) return null;
+
   try {
-    const supabase = createAdminClient();
-    const { data } = await (supabase.from('profiles') as any)
-      .select('id')
-      .eq('referral_code', code.trim().toLowerCase())
-      .single();
-    return data?.id ?? null;
+    const result = await query(
+      'SELECT id FROM profiles WHERE referral_code = $1',
+      [code.trim().toLowerCase()]
+    );
+    return result.rows[0]?.id ?? null;
   } catch {
     return null;
   }
 }
 
-/**
- * 绑定推荐关系：新用户通过推荐链接注册后调用
- */
 export async function bindReferral(newUserId: string, refCode: string): Promise<{
   success: boolean;
   referrerId?: string;
   rewarded?: boolean;
 }> {
-  if (!isSupabaseConfigured()) return { success: false };
+  if (!isDbConfigured()) return { success: false };
+
   const referrerId = await getReferrerByCode(refCode);
   if (!referrerId || referrerId === newUserId) return { success: false };
 
   try {
-    const supabase = createAdminClient();
-    const { error } = await (supabase.from('profiles') as any)
-      .update({ referred_by: referrerId, updated_at: new Date().toISOString() })
-      .eq('id', newUserId);
-
-    if (error) return { success: false };
+    await query(
+      'UPDATE profiles SET referred_by = $1, updated_at = NOW() WHERE id = $2',
+      [referrerId, newUserId]
+    );
 
     const rewarded = await grantReferralReward(referrerId, newUserId);
     return { success: true, referrerId, rewarded };
@@ -91,33 +90,28 @@ export async function bindReferral(newUserId: string, refCode: string): Promise<
   }
 }
 
-/**
- * 发放推荐奖励给推荐人
- */
 async function grantReferralReward(referrerId: string, referredUserId: string): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
+  if (!isDbConfigured()) return false;
+
   try {
-    const supabase = createAdminClient();
-    const { data: profile } = await (supabase.from('profiles') as any)
-      .select('credits')
-      .eq('id', referrerId)
-      .single();
+    const profile = await query(
+      'SELECT credits FROM profiles WHERE id = $1',
+      [referrerId]
+    );
 
-    if (!profile) return false;
+    if (profile.rows.length === 0) return false;
 
-    await (supabase.from('profiles') as any)
-      .update({
-        credits: (profile.credits ?? 0) + REFERRAL_REWARD_CREDITS,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', referrerId);
+    await query(
+      'UPDATE profiles SET credits = credits + $1, updated_at = NOW() WHERE id = $2',
+      [REFERRAL_REWARD_CREDITS, referrerId]
+    );
 
-    await (supabase.from('billing_events') as any).insert({
-      user_id: referrerId,
-      event_type: 'credit_referral',
-      credits_delta: REFERRAL_REWARD_CREDITS,
-      metadata: { referredUserId },
-    });
+    await query(
+      `INSERT INTO billing_events 
+       (user_id, event_type, credits_delta, metadata, created_at)
+       VALUES ($1, 'credit_referral', $2, $3, NOW())`,
+      [referrerId, REFERRAL_REWARD_CREDITS, JSON.stringify({ referredUserId })]
+    );
 
     return true;
   } catch {
@@ -125,17 +119,15 @@ async function grantReferralReward(referrerId: string, referredUserId: string): 
   }
 }
 
-/**
- * 获取用户推荐成功人数
- */
 export async function getReferredCount(userId: string): Promise<number> {
-  if (!isSupabaseConfigured()) return 0;
+  if (!isDbConfigured()) return 0;
+
   try {
-    const supabase = createAdminClient();
-    const { count } = await (supabase.from('profiles') as any)
-      .select('*', { count: 'exact', head: true })
-      .eq('referred_by', userId);
-    return count ?? 0;
+    const result = await query(
+      'SELECT COUNT(*) as count FROM profiles WHERE referred_by = $1',
+      [userId]
+    );
+    return parseInt(result.rows[0]?.count ?? '0', 10);
   } catch {
     return 0;
   }

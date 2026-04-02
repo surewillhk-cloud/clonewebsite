@@ -1,9 +1,8 @@
 /**
- * 配置操作审计日志（不可删除）
- * 所有 platform_config 修改操作必须写入此表
+ * 配置操作审计日志
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 
 export type ConfigLogAction =
   | 'pricing.update'
@@ -28,15 +27,21 @@ export async function logConfigChange(params: {
   newValue?: unknown;
   updatedBy: string;
 }): Promise<void> {
+  if (!isDbConfigured()) return;
+
   try {
-    const supabase = createAdminClient();
-    await (supabase as any).from('platform_config_logs').insert({
-      action: params.action,
-      config_key: params.configKey ?? null,
-      old_value: params.oldValue ?? null,
-      new_value: params.newValue ?? null,
-      updated_by: params.updatedBy,
-    });
+    await query(
+      `INSERT INTO platform_config_logs 
+       (action, config_key, old_value, new_value, updated_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [
+        params.action,
+        params.configKey ?? null,
+        params.oldValue ? JSON.stringify(params.oldValue) : null,
+        params.newValue ? JSON.stringify(params.newValue) : null,
+        params.updatedBy,
+      ]
+    );
   } catch (e) {
     console.error('[config-logs] Failed to log:', e);
   }
@@ -47,25 +52,33 @@ export async function getConfigLogs(params: {
   limit?: number;
   offset?: number;
 }): Promise<ConfigLogEntry[]> {
+  if (!isDbConfigured()) return [];
+
   try {
-    const supabase = createAdminClient();
-    let query = (supabase as any)
-      .from('platform_config_logs')
-      .select('id, action, config_key, old_value, new_value, updated_by, created_at')
-      .order('created_at', { ascending: false })
-      .range(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 50) - 1);
+    const limit = params.limit ?? 50;
+    const offset = params.offset ?? 0;
+
+    let sql = `SELECT id, action, config_key, old_value, new_value, updated_by, created_at 
+               FROM platform_config_logs`;
+    const values: unknown[] = [];
+
     if (params.action) {
-      query = query.eq('action', params.action);
+      sql += ` WHERE action = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`;
+      values.push(params.action, limit, offset);
+    } else {
+      sql += ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
+      values.push(limit, offset);
     }
-    const { data } = await query;
-    return (data || []).map((r: Record<string, unknown>) => ({
-      id: r.id,
-      action: r.action,
-      configKey: r.config_key,
+
+    const result = await query(sql, values);
+    return result.rows.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      action: r.action as ConfigLogAction,
+      configKey: r.config_key as string | null,
       oldValue: r.old_value,
       newValue: r.new_value,
-      updatedBy: r.updated_by,
-      createdAt: r.created_at,
+      updatedBy: r.updated_by as string,
+      createdAt: r.created_at as string,
     }));
   } catch {
     return [];

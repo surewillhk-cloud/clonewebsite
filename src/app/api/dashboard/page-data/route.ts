@@ -3,9 +3,9 @@
  * 合并控制台首页所需数据（stats + tasks + sites），减少 HTTP 往返
  */
 
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUserId } from '@/lib/api-auth';
+import { query, isDbConfigured } from '@/lib/db';
 
 const COMPLEXITY_LABELS: Record<string, string> = {
   static_single: '静态单页',
@@ -14,17 +14,14 @@ const COMPLEXITY_LABELS: Record<string, string> = {
   dynamic_complex: '复杂 SaaS',
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id ?? 'anon';
-
-    if (!user && userId === 'anon') {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
+    if (!isDbConfigured()) {
       return NextResponse.json({
         stats: { cloneCountThisMonth: 0, hostedSiteCount: 0, avgQualityScore: null, tasksPerDay: [] },
         tasks: [],
@@ -32,7 +29,6 @@ export async function GET() {
       });
     }
 
-    const admin = createAdminClient();
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfMonthStr = startOfMonth.toISOString().slice(0, 10);
@@ -42,30 +38,21 @@ export async function GET() {
     const startStr = startDaysAgo.toISOString().slice(0, 10);
 
     const [tasksRes, hostedRes, listRes] = await Promise.all([
-      admin
-        .from('clone_tasks')
-        .select('id, created_at, quality_score, status')
-        .eq('user_id', userId)
-        .gte('created_at', `${startStr}T00:00:00Z`),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (admin.from('hosted_sites') as any)
-        .select('id, clone_task_id, railway_deployment_url, custom_domain, status, hosting_plan, created_at', { count: 'exact' })
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false }),
-      admin
-        .from('clone_tasks')
-        .select('id, target_url, complexity, status, progress, quality_score, created_at, current_step')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10),
+      query<{ id: string; created_at: string; quality_score: number | null; status: string }>(
+        'SELECT id, created_at, quality_score, status FROM clone_tasks WHERE user_id = $1 AND created_at >= $2',
+        [userId, `${startStr}T00:00:00Z`]
+      ),
+      query<{ id: string; clone_task_id: string; railway_deployment_url: string; custom_domain: string; status: string; hosting_plan: string; created_at: string }>(
+        'SELECT id, clone_task_id, railway_deployment_url, custom_domain, status, hosting_plan, created_at FROM hosted_sites WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+      ),
+      query<{ id: string; target_url: string; complexity: string; status: string; progress: number; quality_score: number; created_at: string; current_step: string }>(
+        'SELECT id, target_url, complexity, status, progress, quality_score, created_at, current_step FROM clone_tasks WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10',
+        [userId]
+      ),
     ]);
 
-    const tasks = (tasksRes.data ?? []) as Array<{
-      id: string;
-      created_at: string;
-      quality_score: number | null;
-      status: string;
-    }>;
+    const tasks = tasksRes.rows;
 
     const cloneCountThisMonth = tasks.filter(
       (t) => t.created_at >= `${startOfMonthStr}T00:00:00Z`
@@ -93,10 +80,9 @@ export async function GET() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, count]) => ({ date, count }));
 
-    const hostedData = hostedRes as { data: unknown[]; count: number | null };
-    const sites = (hostedData.data ?? []) as Array<Record<string, unknown>>;
+    const sites = hostedRes.rows;
 
-    const taskList = (listRes.data ?? []).map((row: Record<string, unknown>) => {
+    const taskList = listRes.rows.map((row) => {
       let url = '—';
       if (row.target_url) {
         try {
@@ -122,12 +108,12 @@ export async function GET() {
     return NextResponse.json({
       stats: {
         cloneCountThisMonth,
-        hostedSiteCount: hostedData.count ?? sites.length,
+        hostedSiteCount: sites.length,
         avgQualityScore,
         tasksPerDay,
       },
       tasks: taskList,
-      sites: sites.map((r: Record<string, unknown>) => ({
+      sites: sites.map((r) => ({
         id: r.id,
         cloneTaskId: r.clone_task_id,
         deploymentUrl: r.railway_deployment_url,

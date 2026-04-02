@@ -11,7 +11,7 @@ import type { CloneTask, ComplexityLevel } from '@/types/clone';
 import { CREDITS_BY_COMPLEXITY } from '@/constants/plans';
 import { processCloneTask } from '@/workers/clone-worker';
 import { createTaskInStore, setTaskStatus, getTaskStatus } from '@/lib/task-store';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthUserId } from '@/lib/api-auth';
 import { get as getAuthCache } from '@/lib/auth-cache';
 
 const schema = z.object({
@@ -73,9 +73,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id ?? 'anon';
+    const userId = await getAuthUserId(req) ?? 'anon';
     const creditsUsed = CREDITS_BY_COMPLEXITY[complexity as ComplexityLevel];
 
     const taskId = uuidv4();

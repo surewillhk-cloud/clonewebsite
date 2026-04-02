@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSession } from '@/lib/browser-session';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthUserId } from '@/lib/api-auth';
 import { validateScrapeUrl } from '@/lib/url-validate';
 
 const schema = z.object({
@@ -16,11 +16,8 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -41,7 +38,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const session = await createSession(user.id, targetUrl, purpose);
+    const session = await createSession(userId, targetUrl, purpose);
 
     return NextResponse.json({
       sessionId: session.sessionId,

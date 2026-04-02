@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { LanguageToggle } from './LanguageToggle';
-import { createClient } from '@/lib/supabase/client';
+import { signOut } from 'next-auth/react';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -12,8 +12,7 @@ export function Sidebar() {
   const t = useTranslation();
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await signOut({ redirect: false });
     router.push('/');
     router.refresh();
   };

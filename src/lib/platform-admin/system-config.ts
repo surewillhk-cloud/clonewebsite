@@ -1,20 +1,16 @@
 /**
- * 系统配置（读写 platform_config）
- * 所有修改写入操作日志
+ * 系统配置
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { logConfigChange } from './config-logs';
 
 export interface SystemConfig {
   maxConcurrentTasks: number;
   maintenanceMode: boolean;
   newUserTrialCents: number;
-  /** 失败率阈值 0–1，超过时可选自动开启维护模式 */
   failureRateThreshold: number;
-  /** 统计失败率的最近任务数 */
   failureRateWindowTasks: number;
-  /** 失败率过高时自动开启维护模式 */
   autoMaintenanceOnHighFailureRate: boolean;
 }
 
@@ -28,8 +24,9 @@ const DEFAULT: SystemConfig = {
 };
 
 export async function getSystemConfig(): Promise<SystemConfig> {
+  if (!isDbConfigured()) return DEFAULT;
+
   try {
-    const supabase = createAdminClient();
     const keys = [
       'system.maxConcurrentTasks',
       'system.maintenanceMode',
@@ -38,13 +35,16 @@ export async function getSystemConfig(): Promise<SystemConfig> {
       'system.failureRateWindowTasks',
       'system.autoMaintenanceOnHighFailureRate',
     ];
-    const { data } = await (supabase as any)
-      .from('platform_config')
-      .select('key, value')
-      .in('key', keys);
+
+    const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+    const result = await query(
+      `SELECT key, value FROM platform_config WHERE key IN (${placeholders})`,
+      keys
+    );
 
     const config = { ...DEFAULT };
-    const rows = (data || []) as { key: string; value: unknown }[];
+    const rows = result.rows as { key: string; value: unknown }[];
+
     for (const row of rows) {
       const v = row.value;
       if (row.key === 'system.maxConcurrentTasks')
@@ -70,8 +70,8 @@ export async function saveSystemConfig(
   updates: Partial<SystemConfig>,
   updatedBy: string
 ): Promise<void> {
-  const supabase = createAdminClient();
-  const db = supabase as any;
+  if (!isDbConfigured()) return;
+
   const oldConfig = await getSystemConfig();
 
   const map: { key: string; value: unknown }[] = [];
@@ -89,14 +89,11 @@ export async function saveSystemConfig(
     map.push({ key: 'system.autoMaintenanceOnHighFailureRate', value: updates.autoMaintenanceOnHighFailureRate });
 
   for (const m of map) {
-    await db.from('platform_config').upsert(
-      {
-        key: m.key,
-        value: m.value,
-        updated_by: updatedBy,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'key' }
+    await query(
+      `INSERT INTO platform_config (key, value, updated_by, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = $2, updated_by = $3, updated_at = NOW()`,
+      [m.key, JSON.stringify(m.value), updatedBy]
     );
   }
 

@@ -60,20 +60,4 @@ CREATE TABLE IF NOT EXISTS public.task_costs (
 CREATE INDEX IF NOT EXISTS idx_task_costs_task_id ON public.task_costs(task_id);
 CREATE INDEX IF NOT EXISTS idx_task_costs_calculated_at ON public.task_costs(calculated_at DESC);
 
--- RLS：platform_config 仅 service_role 可读写
-ALTER TABLE public.platform_config ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access platform_config"
-  ON public.platform_config FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');
-
--- platform_admins 仅 service_role 可访问
-ALTER TABLE public.platform_admins ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access platform_admins"
-  ON public.platform_admins FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');
-
--- task_costs 仅 service_role 可访问
-ALTER TABLE public.task_costs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Service role full access task_costs"
-  ON public.task_costs FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');
+-- 注意：不再使用 Supabase RLS，权限由应用层控制

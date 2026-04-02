@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { getAuthUserId } from '@/lib/api-auth';
 
 const COMPLEXITY_LABELS: Record<string, string> = {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get('limit') ?? '20'), 50);
   const offset = parseInt(req.nextUrl.searchParams.get('offset') ?? '0');
 
-  if (!isSupabaseConfigured()) {
+  if (!isDbConfigured()) {
     return NextResponse.json({ tasks: [], total: 0 });
   }
 
@@ -28,22 +28,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = createAdminClient();
-    const { data, error, count } = await supabase
-      .from('clone_tasks')
-      .select('id, target_url, complexity, status, progress, quality_score, created_at, current_step', { count: 'exact' })
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const countResult = await query<{ count: number }>(
+      'SELECT COUNT(*) as count FROM clone_tasks WHERE user_id = $1',
+      [userId]
+    );
+    const count = Number(countResult.rows[0]?.count ?? 0);
 
-    if (error) {
-      if (error.code === '42P01') {
-        return NextResponse.json({ tasks: [], total: 0 });
-      }
-      throw error;
-    }
+    const { rows: tasksData } = await query<{
+      id: string;
+      target_url: string;
+      complexity: string;
+      status: string;
+      progress: number;
+      quality_score: number;
+      created_at: string;
+      current_step: string;
+    }>(
+      'SELECT id, target_url, complexity, status, progress, quality_score, created_at, current_step FROM clone_tasks WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      [userId, limit, offset]
+    );
 
-    const tasks = (data ?? []).map((row: Record<string, unknown>) => {
+    const tasks = tasksData.map((row) => {
       let url = '—';
       if (row.target_url) {
         try {

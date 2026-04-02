@@ -1,15 +1,13 @@
 /**
- * 平台管理后台鉴权（与用户 auth 完全隔离）
- * 使用 platform_admins 表，session 存于 cookie
- * Token 使用 HMAC-SHA256 签名，防止伪造
+ * 平台管理后台鉴权
  */
 
 import { cookies } from 'next/headers';
 import { createHmac, timingSafeEqual } from 'crypto';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 
 const ADMIN_SESSION_COOKIE = 'webecho_platform_admin';
-const SESSION_MAX_AGE = 60 * 60 * 8; // 8 hours
+const SESSION_MAX_AGE = 60 * 60 * 8;
 
 export interface PlatformAdmin {
   id: string;
@@ -20,7 +18,7 @@ export interface PlatformAdmin {
 function getSessionSecret(): string {
   const secret = process.env.PLATFORM_ADMIN_SESSION_SECRET;
   if (!secret || secret.length < 32) {
-    throw new Error('PLATFORM_ADMIN_SESSION_SECRET required (min 32 chars for HMAC-SHA256)');
+    throw new Error('PLATFORM_ADMIN_SESSION_SECRET required (min 32 chars)');
   }
   return secret;
 }
@@ -41,6 +39,8 @@ function verifySignature(payload: string, signature: string): boolean {
 }
 
 export async function getAdminSession(): Promise<PlatformAdmin | null> {
+  if (!isDbConfigured()) return null;
+
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
@@ -56,15 +56,13 @@ export async function getAdminSession(): Promise<PlatformAdmin | null> {
     const payload = JSON.parse(payloadStr) as { email: string; role: string; exp: number };
     if (payload.exp * 1000 < Date.now()) return null;
 
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from('platform_admins')
-      .select('id, email, role')
-      .eq('email', payload.email)
-      .single();
-    if (!data) return null;
-    return data as PlatformAdmin;
+    const result = await query(
+      'SELECT id, email, role FROM platform_admins WHERE email = $1',
+      [payload.email]
+    );
+
+    if (result.rows.length === 0) return null;
+    return result.rows[0] as PlatformAdmin;
   } catch {
     return null;
   }

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { deploy, isDeployerConfigured } from '@/lib/deployer';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthUserId } from '@/lib/api-auth';
 
 const schema = z.object({
   taskId: z.string().uuid(),
@@ -28,11 +28,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -49,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     const result = await deploy({
       taskId,
-      userId: user.id,
+      userId,
       hostingPlan,
       envVars,
     });

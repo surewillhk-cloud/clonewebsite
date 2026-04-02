@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { getAuthUserId } from '@/lib/api-auth';
+import { query, isDbConfigured } from '@/lib/db';
 import { getServiceStatus, isRailwayConfigured } from '@/lib/deployer/railway';
 
 export async function GET(
@@ -17,34 +17,19 @@ export async function GET(
     const { siteId } = await params;
     const sync = req.nextUrl.searchParams.get('sync') === '1';
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
+    if (!isDbConfigured()) {
       return NextResponse.json(
         { error: 'Hosted sites require Supabase' },
         { status: 503 }
       );
     }
 
-    const admin = createAdminClient();
-    const { data: site, error } = await admin
-      .from('hosted_sites')
-      .select('*')
-      .eq('id', siteId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (error || !site) {
-      return NextResponse.json({ error: 'Site not found' }, { status: 404 });
-    }
-
-    const s = site as {
+    const { rows: [site], } = await query<{
       railway_service_id: string | null;
       status: string;
       railway_deployment_url: string | null;
@@ -52,33 +37,40 @@ export async function GET(
       domain_verified: boolean;
       github_repo_url: string | null;
       railway_budget_used: number | null;
-    };
+    }>(
+      'SELECT * FROM hosted_sites WHERE id = $1 AND user_id = $2',
+      [siteId, userId]
+    );
 
-    if (sync && isRailwayConfigured() && s.railway_service_id) {
-      const rail = await getServiceStatus(s.railway_service_id);
+    if (!site) {
+      return NextResponse.json({ error: 'Site not found' }, { status: 404 });
+    }
+
+    if (sync && isRailwayConfigured() && site.railway_service_id) {
+      const rail = await getServiceStatus(site.railway_service_id);
       const updates: Record<string, unknown> = {};
-      if (rail.deploymentUrl !== s.railway_deployment_url) {
+      if (rail.deploymentUrl !== site.railway_deployment_url) {
         updates.railway_deployment_url = rail.deploymentUrl;
       }
-      if (rail.status !== s.status) {
+      if (rail.status !== site.status) {
         updates.status = rail.status;
       }
       if (Object.keys(updates).length > 0) {
-        await (admin.from('hosted_sites') as any)
-          .update(updates)
-          .eq('id', siteId)
-          .eq('user_id', user.id);
-        Object.assign(s, updates);
+        await query(
+          'UPDATE hosted_sites SET railway_deployment_url = $1, status = $2 WHERE id = $3 AND user_id = $4',
+          [updates.railway_deployment_url, updates.status, siteId, userId]
+        );
+        Object.assign(site, updates);
       }
     }
 
     return NextResponse.json({
-      status: s.status,
-      deploymentUrl: s.railway_deployment_url,
-      customDomain: s.custom_domain,
-      domainVerified: s.domain_verified,
-      githubRepoUrl: s.github_repo_url,
-      railwayBudgetUsed: s.railway_budget_used ?? 0,
+      status: site.status,
+      deploymentUrl: site.railway_deployment_url,
+      customDomain: site.custom_domain,
+      domainVerified: site.domain_verified,
+      githubRepoUrl: site.github_repo_url,
+      railwayBudgetUsed: site.railway_budget_used ?? 0,
       railwayBudgetLimit: 5000,
     });
   } catch (err) {

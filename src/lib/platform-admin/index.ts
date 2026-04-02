@@ -14,7 +14,6 @@ export {
   type PricingConfig,
   type ClonePriceItem,
   type PriceItemMode,
-  type PublicPricing,
 } from './pricing-config';
 export { getSystemConfig, saveSystemConfig, type SystemConfig } from './system-config';
 export {

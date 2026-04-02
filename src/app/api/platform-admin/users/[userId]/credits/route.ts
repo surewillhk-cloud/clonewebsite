@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/platform-admin/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query } from '@/lib/db';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -38,46 +38,44 @@ export async function PUT(
       return NextResponse.json({ error: 'delta cannot be 0' }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
-    const db = supabase as any;
-
     // 获取当前 profile
-    const { data: profile, error: fetchError } = await db
-      .from('profiles')
-      .select('id, credits')
-      .eq('id', userId)
-      .single();
+    const profileResult = await query(
+      'SELECT id, credits FROM profiles WHERE id = $1',
+      [userId]
+    );
+    const profile = profileResult.rows[0];
 
-    if (fetchError || !profile) {
+    if (!profile) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const newCredits = Math.max(0, (profile.credits ?? 0) + delta);
 
     // 更新 profiles
-    const { error: updateError } = await db
-      .from('profiles')
-      .update({
-        credits: newCredits,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+    const updateResult = await query(
+      'UPDATE profiles SET credits = $1, updated_at = $2 WHERE id = $3 RETURNING credits',
+      [newCredits, new Date().toISOString(), userId]
+    );
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (!updateResult.rows[0]) {
+      return NextResponse.json({ error: 'Update failed' }, { status: 500 });
     }
 
     // 记录 billing_events
-    await db.from('billing_events').insert({
-      user_id: userId,
-      event_type: 'manual_credit',
-      amount: 0,
-      credits_delta: delta,
-      metadata: {
-        admin_email: admin.email,
-        reason: reason || '平台管理员手动调整',
-      },
-    });
+    await query(
+      `INSERT INTO billing_events (user_id, event_type, amount, credits_delta, metadata) 
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        userId,
+        'manual_credit',
+        0,
+        delta,
+        JSON.stringify({
+          admin_email: admin.email,
+          reason: reason || '平台管理员手动调整',
+        }),
+      ]
+    );
 
     return NextResponse.json({
       ok: true,

@@ -1,16 +1,11 @@
 /**
- * 平台定价配置（读写 platform_config 表）
- * 管理员可实时修改，无需重启
- * 支持两种模式：固定价格 或 成本倍数
- * 所有修改写入操作日志，定价保存时写入历史快照支持回滚
+ * 平台定价配置
  */
 
-import { unstable_cache, revalidateTag } from 'next/cache';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { logConfigChange } from './config-logs';
 import { savePricingSnapshot } from './pricing-history';
 
-/** 预估成本（美分）- 用于倍数模式计算 */
 const ESTIMATED_COST_CENTS: Record<string, number> = {
   static_single: 53,
   static_multi: 113,
@@ -32,13 +27,9 @@ export interface PricingConfig {
   multiplierByComplexity: Record<string, number>;
   minPriceCents: number;
   maxPriceCents: number;
-  /** 克隆价格：按复杂度，每项可设固定价格或成本倍数 */
   clonePriceItems: Record<string, ClonePriceItem>;
-  /** 托管套餐月费（美分） */
   hostingPlans: Record<string, number>;
-  /** 新用户体验价（美分） */
   onboardingPriceCents: number;
-  /** APP 克隆价格 */
   appPriceItems: {
     screenshot: { minCents: number; maxCents: number };
     apk: { minCents: number; maxCents: number };
@@ -81,8 +72,9 @@ const DEFAULT_PRICING: PricingConfig = {
 };
 
 export async function getPricingConfig(): Promise<PricingConfig> {
+  if (!isDbConfigured()) return DEFAULT_PRICING;
+
   try {
-    const supabase = createAdminClient();
     const keys = [
       'pricing.profitMultiplier',
       'pricing.multiplierByComplexity',
@@ -93,13 +85,16 @@ export async function getPricingConfig(): Promise<PricingConfig> {
       'pricing.onboardingPriceCents',
       'pricing.appPriceItems',
     ];
-    const { data } = await supabase
-      .from('platform_config')
-      .select('key, value')
-      .in('key', keys);
+
+    const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+    const result = await query(
+      `SELECT key, value FROM platform_config WHERE key IN (${placeholders})`,
+      keys
+    );
 
     const config = { ...DEFAULT_PRICING };
-    const rows = (data || []) as { key: string; value: unknown }[];
+    const rows = result.rows as { key: string; value: unknown }[];
+
     for (const row of rows) {
       const v = row.value;
       if (row.key === 'pricing.profitMultiplier')
@@ -125,7 +120,6 @@ export async function getPricingConfig(): Promise<PricingConfig> {
   }
 }
 
-/** 获取克隆价格区间（美分）- 供 detect-complexity 和前端展示 */
 export function getClonePriceRange(config: PricingConfig, complexity: string): { min: number; max: number } {
   const item = config.clonePriceItems[complexity];
   if (item?.mode === 'fixed' && item.minCents != null && item.maxCents != null) {
@@ -141,7 +135,6 @@ export function getClonePriceRange(config: PricingConfig, complexity: string): {
   return { min, max };
 }
 
-/** 获取 APP 克隆价格区间 */
 export function getAppPriceRange(
   config: PricingConfig,
   mode: 'screenshot' | 'apk' | 'traffic'
@@ -153,13 +146,7 @@ export function getAppPriceRange(
 
 const PRICING_CACHE_TAG = 'pricing-config';
 
-/** 获取定价配置（带缓存，减少 DB 查询） */
-async function getPricingConfigCached(): Promise<PricingConfig> {
-  return unstable_cache(getPricingConfig, [PRICING_CACHE_TAG], { revalidate: 60, tags: [PRICING_CACHE_TAG] })();
-}
-
-/** 公开展示用价格数据 - 供首页、定价页、clone/new 同步 */
-export interface PublicPricing {
+export async function getPublicPricing(): Promise<{
   cloneRanges: Record<string, { minCents: number; maxCents: number; minDollar: string; maxDollar: string }>;
   hostingPlans: Record<string, { monthlyFeeCents: number; monthlyDollar: string }>;
   onboardingPriceCents: number;
@@ -168,12 +155,10 @@ export interface PublicPricing {
     screenshot: { minCents: number; maxCents: number; minDollar: string; maxDollar: string };
     apk: { minCents: number; maxCents: number; minDollar: string; maxDollar: string };
   };
-}
-
-export async function getPublicPricing(): Promise<PublicPricing> {
-  const config = await getPricingConfigCached();
+}> {
+  const config = await getPricingConfig();
   const complexities = ['static_single', 'static_multi', 'dynamic_basic', 'dynamic_complex'];
-  const cloneRanges: PublicPricing['cloneRanges'] = {};
+  const cloneRanges: Record<string, { minCents: number; maxCents: number; minDollar: string; maxDollar: string }> = {};
   for (const c of complexities) {
     const r = getClonePriceRange(config, c);
     cloneRanges[c] = {
@@ -183,7 +168,7 @@ export async function getPublicPricing(): Promise<PublicPricing> {
       maxDollar: (r.max / 100).toFixed(0),
     };
   }
-  const hostingPlans: PublicPricing['hostingPlans'] = {};
+  const hostingPlans: Record<string, { monthlyFeeCents: number; monthlyDollar: string }> = {};
   for (const [k, cents] of Object.entries(config.hostingPlans)) {
     hostingPlans[k] = {
       monthlyFeeCents: cents,
@@ -212,7 +197,6 @@ export async function savePricingConfig(
   config: Partial<PricingConfig>,
   updatedBy: string
 ): Promise<void> {
-  const supabase = createAdminClient();
   const oldConfig = await getPricingConfig();
   const updates: { key: string; value: unknown; updatedBy: string }[] = [];
 
@@ -234,14 +218,14 @@ export async function savePricingConfig(
     updates.push({ key: 'pricing.appPriceItems', value: config.appPriceItems, updatedBy });
 
   for (const u of updates) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('platform_config').upsert(
-      { key: u.key, value: u.value, updated_by: u.updatedBy, updated_at: new Date().toISOString() },
-      { onConflict: 'key' }
+    await query(
+      `INSERT INTO platform_config (key, value, updated_by, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (key) DO UPDATE SET value = $2, updated_by = $3, updated_at = NOW()`,
+      [u.key, JSON.stringify(u.value), u.updatedBy]
     );
   }
 
-  revalidateTag(PRICING_CACHE_TAG);
   const newConfig = await getPricingConfig();
   await logConfigChange({
     action: 'pricing.update',

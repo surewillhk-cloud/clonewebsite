@@ -11,7 +11,7 @@ import { CREDITS_BY_COMPLEXITY, CREDITS_APP_SCREENSHOT, CREDITS_APP_APK, CREDITS
 import { processCloneTask } from '@/workers/clone-worker';
 import { createTaskInStore, setTaskStatus } from '@/lib/task-store';
 import { ensureProfile, type ProfileRow } from '@/lib/profiles';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { getAuthUserId } from '@/lib/api-auth';
 import { getSystemConfig } from '@/lib/platform-admin/system-config';
 import { validateScrapeUrl } from '@/lib/url-validate';
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       : CREDITS_BY_COMPLEXITY[(complexity ?? 'static_single') as ComplexityLevel];
 
     let profile: ProfileRow | null = null;
-    if (!stripeEnabled && userId !== 'anon' && isSupabaseConfigured()) {
+    if (!stripeEnabled && userId !== 'anon' && isDbConfigured()) {
       profile = await ensureProfile(userId, undefined);
       const balance = profile?.credits ?? 0;
       if (balance < creditsUsed) {
@@ -166,12 +166,12 @@ export async function POST(req: NextRequest) {
       targetLanguage: targetLanguage as string,
     }, initialStatus);
 
-    if (!stripeEnabled && userId !== 'anon' && isSupabaseConfigured() && profile) {
-      const admin = createAdminClient();
+    if (!stripeEnabled && userId !== 'anon' && isDbConfigured() && profile) {
       const newCredits = (profile.credits ?? 0) - creditsUsed;
-      await (admin.from('profiles') as any)
-        .update({ credits: newCredits, updated_at: new Date().toISOString() })
-        .eq('id', userId);
+      await query(
+        'UPDATE profiles SET credits = $1, updated_at = NOW() WHERE id = $2',
+        [newCredits, userId]
+      );
     }
 
     processCloneTask(task).catch(async (err) => {

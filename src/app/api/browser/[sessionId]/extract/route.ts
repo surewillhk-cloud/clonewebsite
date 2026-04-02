@@ -10,7 +10,7 @@ import {
   destroySession,
   extractSessionCookies,
 } from '@/lib/browser-session';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthUserId } from '@/lib/api-auth';
 
 export async function POST(
   req: NextRequest,
@@ -18,11 +18,8 @@ export async function POST(
 ) {
   try {
     const { sessionId } = await params;
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -30,7 +27,7 @@ export async function POST(
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
-    if (session.userId !== user.id) {
+    if (session.userId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

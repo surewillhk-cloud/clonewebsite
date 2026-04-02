@@ -3,32 +3,34 @@
  * 获取当前用户 profile（credits、email、referral 等）
  */
 
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { getAuthUserId } from '@/lib/api-auth';
 import { ensureProfile } from '@/lib/profiles';
 import { getOrCreateReferralCode, getReferredCount } from '@/lib/referral';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://webecho.ai';
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+export async function GET(req: NextRequest) {
+  const userId = await getAuthUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const profile = await ensureProfile(user.id, user.email);
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email ?? undefined;
+
+  const profile = await ensureProfile(userId, email);
   const [referralCode, referredCount] = await Promise.all([
-    getOrCreateReferralCode(user.id),
-    getReferredCount(user.id),
+    getOrCreateReferralCode(userId),
+    getReferredCount(userId),
   ]);
 
   if (!profile) {
     return NextResponse.json({
-      id: user.id,
-      email: user.email,
+      id: userId,
+      email: email ?? 'unknown',
       credits: 0,
       preferredLanguage: 'zh',
       referralCode: referralCode ?? undefined,
@@ -39,7 +41,7 @@ export async function GET() {
 
   return NextResponse.json({
     id: profile.id,
-    email: profile.email ?? user.email,
+    email: profile.email ?? email ?? 'unknown',
     credits: profile.credits,
     preferredLanguage: profile.preferred_language ?? 'zh',
     referralCode: referralCode ?? profile.referral_code ?? undefined,

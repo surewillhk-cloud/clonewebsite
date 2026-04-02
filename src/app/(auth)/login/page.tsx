@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { signIn } from 'next-auth/react';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function LoginPage() {
@@ -19,13 +19,13 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const result = await signIn('credentials', {
         email,
         password,
+        redirect: false,
       });
-      if (signInError) {
-        setError(signInError.message);
+      if (result?.error) {
+        setError(result.error);
         return;
       }
       router.push('/dashboard');

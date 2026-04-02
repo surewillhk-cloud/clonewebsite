@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/platform-admin/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,37 +20,40 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const offset = (page - 1) * limit;
 
-    const supabase = createAdminClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any;
-
-    let query = db
-      .from('clone_tasks')
-      .select('id, user_id, target_url, complexity, credits_used, status, quality_score, created_at, completed_at', {
-        count: 'exact',
-      })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    let countResult;
+    let tasksResult;
 
     if (status) {
-      query = query.eq('status', status);
+      countResult = await query(
+        'SELECT COUNT(*) as count FROM clone_tasks WHERE status = $1',
+        [status]
+      );
+      tasksResult = await query(
+        `SELECT id, user_id, target_url, complexity, credits_used, status, quality_score, created_at, completed_at 
+         FROM clone_tasks WHERE status = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+        [status, limit, offset]
+      );
+    } else {
+      countResult = await query('SELECT COUNT(*) as count FROM clone_tasks');
+      tasksResult = await query(
+        `SELECT id, user_id, target_url, complexity, credits_used, status, quality_score, created_at, completed_at 
+         FROM clone_tasks ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
     }
 
-    const { data: tasks, error, count } = await query;
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const count = parseInt(countResult.rows[0]?.count ?? '0', 10);
+    const tasks = tasksResult.rows;
 
     // 批量获取 task_costs（用于显示成本/利润）
-    const taskIds = (tasks || []).map((t: { id: string }) => t.id);
+    const taskIds = tasks.map((t) => (t as { id: string }).id);
     const costsMap: Record<string, { total_cost_cents: number; charged_cents: number; profit_cents: number }> = {};
     if (taskIds.length > 0) {
-      const { data: costs } = await db
-        .from('task_costs')
-        .select('task_id, total_cost_cents, charged_cents, profit_cents')
-        .in('task_id', taskIds);
-      for (const c of costs || []) {
+      const costsResult = await query(
+        'SELECT task_id, total_cost_cents, charged_cents, profit_cents FROM task_costs WHERE task_id = ANY($1)',
+        [taskIds]
+      );
+      for (const c of costsResult.rows) {
         const row = c as { task_id: string; total_cost_cents: number; charged_cents: number; profit_cents: number };
         costsMap[row.task_id] = {
           total_cost_cents: row.total_cost_cents,
@@ -60,7 +63,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const items = (tasks || []).map((t: Record<string, unknown>) => ({
+    const items = tasks.map((t: Record<string, unknown>) => ({
       id: t.id,
       userId: t.user_id,
       targetUrl: t.target_url,
@@ -75,7 +78,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       items,
-      total: count ?? 0,
+      total: count,
       page,
       limit,
     });

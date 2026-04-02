@@ -6,14 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { setAdminSession } from '@/lib/platform-admin/auth';
 import { getAdminTotpSecret } from '@/lib/platform-admin/totp';
 
 const TOTP_TEMP_EXPIRY_SEC = 180; // 3 分钟
 
 export async function POST(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isDbConfigured()) {
     return NextResponse.json(
       { error: 'Platform admin not configured' },
       { status: 503 }
@@ -26,14 +26,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
-    const { data: adminRow, error } = await supabase
-      .from('platform_admins')
-      .select('id, email, role, password_hash')
-      .eq('email', email.trim().toLowerCase())
-      .single();
+    const result = await query(
+      'SELECT id, email, role, password_hash FROM platform_admins WHERE email = $1',
+      [email.trim().toLowerCase()]
+    );
+    const adminRow = result.rows[0];
 
-    if (error || !adminRow) {
+    if (!adminRow) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -46,11 +45,11 @@ export async function POST(req: NextRequest) {
     const totpSecret = await getAdminTotpSecret(admin.id);
     if (totpSecret) {
       const expiresAt = new Date(Date.now() + TOTP_TEMP_EXPIRY_SEC * 1000);
-      const { data: tempRow } = await (supabase as any)
-        .from('platform_admin_totp_temp')
-        .insert({ admin_id: admin.id, expires_at: expiresAt.toISOString() })
-        .select('token')
-        .single();
+      const tempResult = await query(
+        'INSERT INTO platform_admin_totp_temp (admin_id, expires_at) VALUES ($1, $2) RETURNING token',
+        [admin.id, expiresAt.toISOString()]
+      );
+      const tempRow = tempResult.rows[0];
       if (!tempRow?.token) {
         return NextResponse.json({ error: 'Login failed' }, { status: 500 });
       }
@@ -61,11 +60,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
-      .from('platform_admins')
-      .update({ last_login_at: new Date().toISOString() })
-      .eq('id', admin.id);
+    await query(
+      'UPDATE platform_admins SET last_login_at = $1 WHERE id = $2',
+      [new Date().toISOString(), admin.id]
+    );
 
     await setAdminSession({
       id: admin.id,

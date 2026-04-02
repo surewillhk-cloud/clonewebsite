@@ -1,9 +1,9 @@
 /**
  * 任务状态存储
- * Supabase 已配置时使用 clone_tasks 表持久化，否则退化为内存 Map
+ * 使用 PostgreSQL (pg) 连接池
  */
 
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 
 export interface TaskStatusState {
   status: string;
@@ -18,21 +18,10 @@ export interface TaskStatusState {
 }
 
 const memoryStore = new Map<string, TaskStatusState>();
-/** 内存模式下任务归属（Supabase 不可用时） */
 const memoryOwnerMap = new Map<string, string>();
 
 function toDbRow(updates: Partial<TaskStatusState>) {
-  const row: {
-    status?: string;
-    progress?: number;
-    current_step?: string;
-    quality_score?: number;
-    r2_key?: string | null;
-    local_zip_path?: string | null;
-    retry_count?: number;
-    error_message?: string;
-    completed_at?: string;
-  } = {};
+  const row: Record<string, unknown> = {};
   if (updates.status !== undefined) row.status = updates.status;
   if (updates.progress !== undefined) row.progress = updates.progress;
   if (updates.currentStep !== undefined) row.current_step = updates.currentStep;
@@ -65,36 +54,39 @@ export async function getTaskStatus(taskId: string): Promise<TaskStatusState | u
   return withOwner?.status;
 }
 
-/** 获取任务状态及所属 userId（用于鉴权） */
 export async function getTaskStatusWithOwner(
   taskId: string
 ): Promise<{ status: TaskStatusState; userId: string } | undefined> {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
-      const supabase = createAdminClient();
-      const { data, error } = await supabase
-        .from('clone_tasks')
-        .select('user_id, status, progress, current_step, quality_score, r2_key, local_zip_path, retry_count, clone_type')
-        .eq('id', taskId)
-        .single();
+      const result = await query(
+        `SELECT user_id, status, progress, current_step, quality_score, r2_key, 
+         local_zip_path, retry_count, clone_type 
+         FROM clone_tasks WHERE id = $1`,
+        [taskId]
+      );
 
-      if (error || !data) {
+      if (result.rows.length === 0) {
         const mem = memoryStore.get(taskId);
         if (!mem) return undefined;
         const owner = memoryOwnerMap.get(taskId) ?? 'anon';
         return { status: mem, userId: owner };
       }
+
+      const row = result.rows[0];
       return {
-        status: fromDbRow(data),
-        userId: String((data as { user_id?: string }).user_id ?? 'anon'),
+        status: fromDbRow(row),
+        userId: String(row.user_id ?? 'anon'),
       };
-    } catch {
+    } catch (err) {
+      console.error('[task-store] DB query error:', err);
       const mem = memoryStore.get(taskId);
       if (!mem) return undefined;
       const owner = memoryOwnerMap.get(taskId) ?? 'anon';
       return { status: mem, userId: owner };
     }
   }
+
   const mem = memoryStore.get(taskId);
   if (!mem) return undefined;
   const owner = memoryOwnerMap.get(taskId) ?? 'anon';
@@ -105,18 +97,28 @@ export async function setTaskStatus(
   taskId: string,
   updates: Partial<TaskStatusState>
 ): Promise<void> {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
-      const supabase = createAdminClient();
       const row = toDbRow(updates);
-      // @ts-expect-error Supabase 表类型在无 schema 生成时推断为 never
-      const { error } = await supabase.from('clone_tasks').update(row).eq('id', taskId);
+      const setClauses: string[] = [];
+      const values: unknown[] = [];
+      let paramIndex = 1;
 
-      if (error) {
-        console.warn('[task-store] Supabase update failed:', error);
+      for (const [key, value] of Object.entries(row)) {
+        setClauses.push(`${key} = $${paramIndex}`);
+        values.push(value);
+        paramIndex++;
+      }
+
+      if (setClauses.length > 0) {
+        values.push(taskId);
+        await query(
+          `UPDATE clone_tasks SET ${setClauses.join(', ')} WHERE id = $${paramIndex}`,
+          values
+        );
       }
     } catch (err) {
-      console.warn('[task-store] Supabase setTaskStatus error:', err);
+      console.error('[task-store] DB update error:', err);
     }
   }
 
@@ -145,32 +147,35 @@ export async function createTaskInStore(
   },
   initialStatus: TaskStatusState
 ): Promise<void> {
-  if (isSupabaseConfigured()) {
+  if (isDbConfigured()) {
     try {
-      const supabase = createAdminClient();
-      const row: Record<string, unknown> = {
-        id: taskId,
-        user_id: task.userId,
-        clone_type: task.cloneType,
-        target_url: task.targetUrl,
-        complexity: task.complexity,
-        credits_used: task.creditsUsed,
-        delivery_mode: task.deliveryMode,
-        target_language: task.targetLanguage,
-        status: initialStatus.status,
-        progress: initialStatus.progress,
-        current_step: initialStatus.currentStep,
-        retry_count: initialStatus.retryCount,
-      };
-      if (task.stripePaymentIntentId) {
-        row.stripe_payment_intent_id = task.stripePaymentIntentId;
-      }
-      // @ts-expect-error Supabase 表类型在无 schema 生成时推断为 never
-      await supabase.from('clone_tasks').insert(row);
+      await query(
+        `INSERT INTO clone_tasks 
+         (id, user_id, clone_type, target_url, complexity, credits_used, 
+          delivery_mode, target_language, status, progress, current_step, retry_count,
+          stripe_payment_intent_id, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())`,
+        [
+          taskId,
+          task.userId,
+          task.cloneType,
+          task.targetUrl,
+          task.complexity,
+          task.creditsUsed,
+          task.deliveryMode,
+          task.targetLanguage,
+          initialStatus.status,
+          initialStatus.progress,
+          initialStatus.currentStep,
+          initialStatus.retryCount,
+          task.stripePaymentIntentId ?? null,
+        ]
+      );
     } catch (err) {
-      console.warn('[task-store] Supabase insert failed:', err);
+      console.error('[task-store] DB insert error:', err);
     }
   }
+
   memoryStore.set(taskId, initialStatus);
   memoryOwnerMap.set(taskId, task.userId);
 }

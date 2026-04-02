@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { getAuthUserId } from '@/lib/api-auth';
+import { query, isDbConfigured } from '@/lib/db';
 import { createSession } from '@/lib/browser-session';
 import { startPreviewServer } from '@/lib/preview-server';
 import { getTaskStatusWithOwner } from '@/lib/task-store';
@@ -18,11 +18,8 @@ export async function POST(
   try {
     const { id: taskId } = await params;
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -33,24 +30,20 @@ export async function POST(
         { status: 400 }
       );
     }
-    if (taskWithOwner.userId !== 'anon' && taskWithOwner.userId !== user.id) {
+    if (taskWithOwner.userId !== 'anon' && taskWithOwner.userId !== userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     let targetUrl: string;
 
     // 优先使用已部署的站点 URL
-    if (isSupabaseConfigured()) {
-      const admin = createAdminClient();
-      const { data: hosted } = await (admin.from('hosted_sites') as any)
-        .select('railway_deployment_url, status')
-        .eq('clone_task_id', taskId)
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .limit(1)
-        .single();
+    if (isDbConfigured()) {
+      const { rows: [hosted] } = await query<{ railway_deployment_url: string | null; status: string }>(
+        'SELECT railway_deployment_url, status FROM hosted_sites WHERE clone_task_id = $1 AND user_id = $2 AND status = $3 LIMIT 1',
+        [taskId, userId, 'active']
+      );
 
-      const deploymentUrl = hosted?.railway_deployment_url as string | undefined;
+      const deploymentUrl = hosted?.railway_deployment_url ?? undefined;
       if (deploymentUrl) {
         targetUrl = deploymentUrl;
       } else {
@@ -60,7 +53,7 @@ export async function POST(
       targetUrl = await startPreviewServer(taskId);
     }
 
-    const session = await createSession(user.id, targetUrl, 'preview', {
+    const session = await createSession(userId, targetUrl, 'preview', {
       taskId,
     });
 

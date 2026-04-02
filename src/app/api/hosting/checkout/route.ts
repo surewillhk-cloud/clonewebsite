@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { HOSTING_PLANS } from '@/constants/plans';
+import { getAuthUserId } from '@/lib/api-auth';
 
 const schema = z.object({
   taskId: z.string().uuid(),
@@ -29,12 +30,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { createClient } = await import('@/lib/supabase/server');
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -78,7 +75,7 @@ export async function POST(req: NextRequest) {
       ],
       metadata: {
         taskId,
-        userId: user.id,
+        userId,
         hostingPlan,
       },
       success_url: `${appUrl}/clone/${taskId}/result?hosting_success=1&session_id={CHECKOUT_SESSION_ID}`,
@@ -86,7 +83,7 @@ export async function POST(req: NextRequest) {
       subscription_data: {
         metadata: {
           taskId,
-          userId: user.id,
+          userId,
           hostingPlan,
         },
       },

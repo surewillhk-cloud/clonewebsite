@@ -75,24 +75,29 @@ export async function deploy(input: DeployInput): Promise<DeployResult> {
   const siteId = uuidv4();
   const githubRepoUrl = `https://github.com/${fullName}`;
 
-  const { isSupabaseConfigured, createAdminClient } = await import('@/lib/supabase/admin');
-  if (isSupabaseConfigured()) {
-    const supabase = createAdminClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('hosted_sites') as any).insert({
-        id: siteId,
-        user_id: userId,
-        clone_task_id: taskId,
-        github_repo_url: githubRepoUrl,
-        github_repo_name: fullName,
-        railway_project_id: railResult.projectId,
-        railway_service_id: railResult.serviceId,
-        railway_deployment_url: railResult.deploymentUrl ?? null,
-        hosting_plan: hostingPlan,
-        status: 'deploying',
-        railway_budget_used: 0,
-        stripe_subscription_id: stripeSubscriptionId ?? null,
-      });
+  const { isDbConfigured, query: dbQuery } = await import('@/lib/db');
+  if (isDbConfigured()) {
+    await dbQuery(
+      `INSERT INTO hosted_sites 
+       (id, user_id, clone_task_id, github_repo_url, github_repo_name, 
+        railway_project_id, railway_service_id, railway_deployment_url, 
+        hosting_plan, status, railway_budget_used, stripe_subscription_id, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())`,
+      [
+        siteId,
+        userId,
+        taskId,
+        githubRepoUrl,
+        fullName,
+        railResult.projectId,
+        railResult.serviceId,
+        railResult.deploymentUrl ?? null,
+        hostingPlan,
+        'deploying',
+        0,
+        stripeSubscriptionId ?? null,
+      ]
+    );
   }
 
   await fs.rm(extractDir, { recursive: true, force: true }).catch(() => {});

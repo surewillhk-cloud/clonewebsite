@@ -1,5 +1,5 @@
 -- hosted_sites 表 - 托管站点
--- 执行: supabase db push 或手动在 SQL Editor 运行
+-- 注意：不再使用 Supabase RLS，权限由应用层控制
 
 CREATE TABLE IF NOT EXISTS public.hosted_sites (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23,15 +23,3 @@ CREATE TABLE IF NOT EXISTS public.hosted_sites (
 CREATE INDEX IF NOT EXISTS idx_hosted_sites_user_id ON public.hosted_sites(user_id);
 CREATE INDEX IF NOT EXISTS idx_hosted_sites_clone_task_id ON public.hosted_sites(clone_task_id);
 CREATE INDEX IF NOT EXISTS idx_hosted_sites_status ON public.hosted_sites(status);
-
-ALTER TABLE public.hosted_sites ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can read own hosted sites"
-  ON public.hosted_sites
-  FOR SELECT
-  USING (auth.uid()::text = user_id);
-
-CREATE POLICY "Service role full access"
-  ON public.hosted_sites
-  FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');

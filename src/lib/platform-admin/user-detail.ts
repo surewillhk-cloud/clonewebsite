@@ -1,8 +1,8 @@
 /**
- * 平台管理 - 单用户详情（服务端调用）
+ * 平台管理 - 单用户详情
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 
 export interface UserDetailResult {
   user: {
@@ -30,59 +30,59 @@ export interface UserDetailResult {
 }
 
 export async function getUserDetail(userId: string): Promise<UserDetailResult | null> {
-  const supabase = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
+  if (!isDbConfigured()) return null;
 
-  const { data: profile, error: profileError } = await db
-    .from('profiles')
-    .select('id, email, credits, credits_expire_at, stripe_customer_id, created_at, updated_at')
-    .eq('id', userId)
-    .single();
+  const profileResult = await query(
+    `SELECT id, email, credits, credits_expire_at, stripe_customer_id, created_at, updated_at
+     FROM profiles WHERE id = $1`,
+    [userId]
+  );
 
-  if (profileError || !profile) {
-    return null;
-  }
+  if (profileResult.rows.length === 0) return null;
 
-  const { data: tasks } = await db
-    .from('clone_tasks')
-    .select('id, target_url, complexity, status, credits_used, created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(20);
+  const profile = profileResult.rows[0] as Record<string, unknown>;
 
-  const taskList = tasks ?? [];
+  const tasksResult = await query(
+    `SELECT id, target_url, complexity, status, credits_used, created_at
+     FROM clone_tasks WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`,
+    [userId]
+  );
 
-  const [totalRes, doneRes, failedRes] = await Promise.all([
-    db.from('clone_tasks').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    db.from('clone_tasks').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'done'),
-    db.from('clone_tasks').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'failed'),
-  ]);
-
-  const taskStats = {
-    total: (totalRes as { count?: number })?.count ?? 0,
-    done: (doneRes as { count?: number })?.count ?? 0,
-    failed: (failedRes as { count?: number })?.count ?? 0,
-  };
+  const totalResult = await query(
+    'SELECT COUNT(*) as count FROM clone_tasks WHERE user_id = $1',
+    [userId]
+  );
+  const doneResult = await query(
+    'SELECT COUNT(*) as count FROM clone_tasks WHERE user_id = $1 AND status = $2',
+    [userId, 'done']
+  );
+  const failedResult = await query(
+    'SELECT COUNT(*) as count FROM clone_tasks WHERE user_id = $1 AND status = $2',
+    [userId, 'failed']
+  );
 
   return {
     user: {
-      id: profile.id,
-      email: profile.email,
-      credits: profile.credits ?? 0,
-      creditsExpireAt: profile.credits_expire_at,
-      stripeCustomerId: profile.stripe_customer_id,
-      createdAt: profile.created_at,
-      updatedAt: profile.updated_at,
+      id: profile.id as string,
+      email: profile.email as string | null,
+      credits: (profile.credits as number) ?? 0,
+      creditsExpireAt: profile.credits_expire_at as string | null,
+      stripeCustomerId: profile.stripe_customer_id as string | null,
+      createdAt: profile.created_at as string,
+      updatedAt: profile.updated_at as string | null,
     },
-    taskStats,
-    recentTasks: taskList.map((t: Record<string, unknown>) => ({
-      id: t.id,
-      targetUrl: t.target_url,
-      complexity: t.complexity,
-      status: t.status,
-      creditsUsed: t.credits_used,
-      createdAt: t.created_at,
+    taskStats: {
+      total: parseInt((totalResult.rows[0] as { count: string }).count ?? '0', 10),
+      done: parseInt((doneResult.rows[0] as { count: string }).count ?? '0', 10),
+      failed: parseInt((failedResult.rows[0] as { count: string }).count ?? '0', 10),
+    },
+    recentTasks: tasksResult.rows.map((t: Record<string, unknown>) => ({
+      id: t.id as string,
+      targetUrl: t.target_url as string | null,
+      complexity: t.complexity as string | null,
+      status: t.status as string,
+      creditsUsed: t.credits_used as number,
+      createdAt: t.created_at as string,
     })),
   };
 }

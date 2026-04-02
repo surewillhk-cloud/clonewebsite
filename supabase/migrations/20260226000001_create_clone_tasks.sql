@@ -34,15 +34,4 @@ CREATE INDEX IF NOT EXISTS idx_clone_tasks_user_id ON public.clone_tasks(user_id
 CREATE INDEX IF NOT EXISTS idx_clone_tasks_status ON public.clone_tasks(status);
 CREATE INDEX IF NOT EXISTS idx_clone_tasks_created_at ON public.clone_tasks(created_at DESC);
 
--- RLS: 允许 service_role 读写；anon 仅可读自己的任务
-ALTER TABLE public.clone_tasks ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can read own tasks"
-  ON public.clone_tasks
-  FOR SELECT
-  USING (auth.uid()::text = user_id OR user_id = 'anon');
-
-CREATE POLICY "Service role full access"
-  ON public.clone_tasks
-  FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');
+-- 注意：不再使用 Supabase RLS，权限由应用层控制

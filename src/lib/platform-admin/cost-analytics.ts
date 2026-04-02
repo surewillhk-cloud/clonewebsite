@@ -3,7 +3,7 @@
  * 从 task_costs、billing_events 表统计收入、成本、利润、退款
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query } from '@/lib/db';
 
 export interface FinanceSummary {
   totalRevenueCents: number;
@@ -36,16 +36,14 @@ export interface DailyFinanceRow {
  * 获取指定时间范围内的退款总额（billing_events credit_refund）
  */
 async function getRefundTotal(startDate: string, endDate: string): Promise<number> {
-  const supabase = createAdminClient();
-  const db = supabase as any;
-  const { data } = await db
-    .from('billing_events')
-    .select('amount, credits_delta')
-    .eq('event_type', 'credit_refund')
-    .gte('created_at', `${startDate}T00:00:00Z`)
-    .lte('created_at', `${endDate}T23:59:59.999Z`);
+  const result = await query(
+    `SELECT amount, credits_delta FROM billing_events 
+     WHERE event_type = 'credit_refund' 
+     AND created_at >= $1 AND created_at <= $2`,
+    [`${startDate}T00:00:00Z`, `${endDate}T23:59:59.999Z`]
+  );
 
-  const rows = (data ?? []) as Array<{ amount?: number; credits_delta?: number }>;
+  const rows = result.rows as Array<{ amount?: number; credits_delta?: number }>;
   let total = 0;
   for (const r of rows) {
     if (r.amount && r.amount < 0) total += Math.abs(r.amount);
@@ -61,17 +59,15 @@ export async function getCostBreakdown(
   startDate: string,
   endDate: string
 ): Promise<CostBreakdown> {
-  const supabase = createAdminClient();
-  const db = supabase as any;
-  const { data } = await db
-    .from('task_costs')
-    .select(
-      'firecrawl_cost_cents, decodo_cost_cents, playwright_cost_cents, claude_input_cost_cents, claude_output_cost_cents, docker_cost_cents, r2_cost_cents'
-    )
-    .gte('calculated_at', `${startDate}T00:00:00Z`)
-    .lte('calculated_at', `${endDate}T23:59:59.999Z`);
+  const result = await query(
+    `SELECT firecrawl_cost_cents, decodo_cost_cents, playwright_cost_cents, 
+            claude_input_cost_cents, claude_output_cost_cents, docker_cost_cents, r2_cost_cents
+     FROM task_costs 
+     WHERE calculated_at >= $1 AND calculated_at <= $2`,
+    [`${startDate}T00:00:00Z`, `${endDate}T23:59:59.999Z`]
+  );
 
-  const rows = (data ?? []) as Array<{
+  const rows = result.rows as Array<{
     firecrawl_cost_cents?: number;
     decodo_cost_cents?: number;
     playwright_cost_cents?: number;
@@ -109,16 +105,14 @@ export async function getFinanceSummary(
   startDate: string,
   endDate: string
 ): Promise<FinanceSummary> {
-  const supabase = createAdminClient();
-  const db = supabase as any;
+  const result = await query(
+    `SELECT charged_cents, total_cost_cents, profit_cents 
+     FROM task_costs 
+     WHERE calculated_at >= $1 AND calculated_at <= $2`,
+    [`${startDate}T00:00:00Z`, `${endDate}T23:59:59.999Z`]
+  );
 
-  const { data } = await db
-    .from('task_costs')
-    .select('charged_cents, total_cost_cents, profit_cents')
-    .gte('calculated_at', `${startDate}T00:00:00Z`)
-    .lte('calculated_at', `${endDate}T23:59:59.999Z`);
-
-  const rows = (data ?? []) as Array<{
+  const rows = result.rows as Array<{
     charged_cents?: number;
     total_cost_cents?: number;
     profit_cents?: number;
@@ -151,31 +145,29 @@ export async function getFinanceSummary(
 export async function getDailyFinance(
   days: number = 30
 ): Promise<DailyFinanceRow[]> {
-  const supabase = createAdminClient();
-  const db = supabase as any;
-
   const start = new Date();
   start.setDate(start.getDate() - days);
   const startStr = start.toISOString().slice(0, 10);
 
-  const { data: taskData } = await db
-    .from('task_costs')
-    .select('calculated_at, charged_cents, total_cost_cents, profit_cents')
-    .gte('calculated_at', `${startStr}T00:00:00Z`);
+  const taskResult = await query(
+    `SELECT calculated_at, charged_cents, total_cost_cents, profit_cents 
+     FROM task_costs WHERE calculated_at >= $1`,
+    [`${startStr}T00:00:00Z`]
+  );
 
-  const { data: refundData } = await db
-    .from('billing_events')
-    .select('created_at, amount, credits_delta')
-    .eq('event_type', 'credit_refund')
-    .gte('created_at', `${startStr}T00:00:00Z`);
+  const refundResult = await query(
+    `SELECT created_at, amount, credits_delta FROM billing_events 
+     WHERE event_type = 'credit_refund' AND created_at >= $1`,
+    [`${startStr}T00:00:00Z`]
+  );
 
-  const taskRows = (taskData ?? []) as Array<{
+  const taskRows = taskResult.rows as Array<{
     calculated_at: string;
     charged_cents?: number;
     total_cost_cents?: number;
     profit_cents?: number;
   }>;
-  const refundRows = (refundData ?? []) as Array<{
+  const refundRows = refundResult.rows as Array<{
     created_at: string;
     amount?: number;
     credits_delta?: number;

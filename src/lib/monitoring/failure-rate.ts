@@ -1,18 +1,15 @@
 /**
  * 失败率检测与维护模式联动
- * 当最近 N 个任务失败率超过阈值时，可选自动开启维护模式并告警
  */
 
-import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { getSystemConfig, saveSystemConfig } from '@/lib/platform-admin/system-config';
 import { getAdminEmails } from './get-admin-emails';
 import { sendAdminAlert, isEmailConfigured } from '@/lib/email/send';
 
-/**
- * 检查最近任务失败率，若超过阈值且开启自动维护，则启用维护模式并告警
- */
 export async function checkFailureRateAndMaybeEnableMaintenance(): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!isDbConfigured()) return;
+
   const config = await getSystemConfig();
   if (!config.autoMaintenanceOnHighFailureRate) return;
 
@@ -20,15 +17,13 @@ export async function checkFailureRateAndMaybeEnableMaintenance(): Promise<void>
   const threshold = config.failureRateThreshold;
 
   try {
-    const supabase = createAdminClient();
-    const { data } = await (supabase as any)
-      .from('clone_tasks')
-      .select('status')
-      .order('created_at', { ascending: false })
-      .limit(window);
+    const result = await query(
+      `SELECT status FROM clone_tasks ORDER BY created_at DESC LIMIT $1`,
+      [window]
+    );
 
-    const rows = (data ?? []) as { status: string }[];
-    if (rows.length < Math.min(window, 5)) return; // 样本太少不触发
+    const rows = result.rows as { status: string }[];
+    if (rows.length < Math.min(window, 5)) return;
 
     const failed = rows.filter((r) => r.status === 'failed').length;
     const rate = failed / rows.length;

@@ -1,15 +1,13 @@
 /**
- * 第三方服务特征库配置（存储于 platform_config，支持在线编辑无需部署）
- * 所有修改写入操作日志
+ * 第三方服务特征库配置
  */
 
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { logConfigChange } from './config-logs';
 import { SIGNATURES } from '@/constants/third-party-signatures';
 
 const CONFIG_KEY = 'signatures.thirdParty';
 
-/** 可 JSON 序列化的特征格式（正则存为字符串，格式 /pattern/flags） */
 export interface ServiceSignatureSerialized {
   domains?: string[];
   scriptPatterns?: string[];
@@ -17,7 +15,6 @@ export interface ServiceSignatureSerialized {
   htmlPatterns?: string[];
 }
 
-/** 运行时可用的特征格式（含 RegExp） */
 export interface ServiceSignature {
   domains?: string[];
   scriptPatterns?: RegExp[];
@@ -42,7 +39,6 @@ function serializeRegex(r: RegExp): string {
   return flags ? `/${r.source}/${flags}` : `/${r.source}/`;
 }
 
-/** 将常量中的 SIGNATURES 转为可序列化格式 */
 function signaturesToSerialized(
   sigs: Record<string, { domains?: string[]; scriptPatterns?: RegExp[]; classNames?: string[]; htmlPatterns?: RegExp[] }>
 ): Record<string, ServiceSignatureSerialized> {
@@ -58,7 +54,6 @@ function signaturesToSerialized(
   return out;
 }
 
-/** 将可序列化格式转为运行时可用的格式 */
 function serializedToRuntime(
   raw: Record<string, ServiceSignatureSerialized>
 ): Record<string, ServiceSignature> {
@@ -79,21 +74,22 @@ function serializedToRuntime(
   return out;
 }
 
-/**
- * 获取第三方服务特征库（数据库优先，空则用常量默认）
- */
 export async function getSignatures(): Promise<Record<string, ServiceSignature>> {
-  try {
-    const supabase = createAdminClient();
-    const { data } = await (supabase as any)
-      .from('platform_config')
-      .select('value')
-      .eq('key', CONFIG_KEY)
-      .maybeSingle();
+  if (!isDbConfigured()) {
+    return serializedToRuntime(signaturesToSerialized(SIGNATURES));
+  }
 
-    const raw = data?.value;
-    if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
-      return serializedToRuntime(raw);
+  try {
+    const result = await query(
+      'SELECT value FROM platform_config WHERE key = $1',
+      [CONFIG_KEY]
+    );
+
+    if (result.rows.length > 0) {
+      const raw = result.rows[0].value;
+      if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
+        return serializedToRuntime(raw as Record<string, ServiceSignatureSerialized>);
+      }
     }
   } catch (e) {
     console.warn('[signatures-config] Load from DB failed, using defaults:', e);
@@ -101,21 +97,22 @@ export async function getSignatures(): Promise<Record<string, ServiceSignature>>
   return serializedToRuntime(signaturesToSerialized(SIGNATURES));
 }
 
-/**
- * 获取可编辑的 JSON 格式（用于管理后台）
- */
 export async function getSignaturesForEdit(): Promise<Record<string, ServiceSignatureSerialized>> {
-  try {
-    const supabase = createAdminClient();
-    const { data } = await (supabase as any)
-      .from('platform_config')
-      .select('value')
-      .eq('key', CONFIG_KEY)
-      .maybeSingle();
+  if (!isDbConfigured()) {
+    return signaturesToSerialized(SIGNATURES);
+  }
 
-    const raw = data?.value;
-    if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
-      return raw;
+  try {
+    const result = await query(
+      'SELECT value FROM platform_config WHERE key = $1',
+      [CONFIG_KEY]
+    );
+
+    if (result.rows.length > 0) {
+      const raw = result.rows[0].value;
+      if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) {
+        return raw as Record<string, ServiceSignatureSerialized>;
+      }
     }
   } catch {
     // ignore
@@ -123,23 +120,18 @@ export async function getSignaturesForEdit(): Promise<Record<string, ServiceSign
   return signaturesToSerialized(SIGNATURES);
 }
 
-/**
- * 保存第三方服务特征库
- */
 export async function saveSignatures(
   sigs: Record<string, ServiceSignatureSerialized>,
   updatedBy: string
 ): Promise<void> {
-  const supabase = createAdminClient();
+  if (!isDbConfigured()) return;
+
   const oldSigs = await getSignaturesForEdit();
-  await (supabase as any).from('platform_config').upsert(
-    {
-      key: CONFIG_KEY,
-      value: sigs,
-      updated_by: updatedBy,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'key' }
+  await query(
+    `INSERT INTO platform_config (key, value, updated_by, updated_at)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $2, updated_by = $3, updated_at = NOW()`,
+    [CONFIG_KEY, JSON.stringify(sigs), updatedBy]
   );
   await logConfigChange({
     action: 'signatures.update',

@@ -1,38 +1,28 @@
 -- profiles 表 - 用户额度与 Stripe 关联
--- 执行: supabase db push 或手动在 SQL Editor 运行
+-- 修改为使用独立用户表（不再是 Supabase auth.users）
+
+CREATE TABLE IF NOT EXISTS public.users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text UNIQUE NOT NULL,
+  password_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email text,
+  id uuid PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   credits integer NOT NULL DEFAULT 0,
   credits_expire_at timestamptz,
   stripe_customer_id text,
   preferred_language text DEFAULT 'zh',
+  referral_code text,
+  referred_by uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- 新建用户自动创建 profile（需在 Supabase Dashboard 创建 trigger 或使用 Edge Function）
--- 此处仅建表，触发器可后续添加
-
 CREATE INDEX IF NOT EXISTS idx_profiles_stripe_customer ON public.profiles(stripe_customer_id);
-
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can read own profile"
-  ON public.profiles
-  FOR SELECT
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile"
-  ON public.profiles
-  FOR UPDATE
-  USING (auth.uid() = id);
-
-CREATE POLICY "Service role full access"
-  ON public.profiles
-  FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');
+CREATE INDEX IF NOT EXISTS idx_profiles_referral_code ON public.profiles(referral_code);
+CREATE INDEX IF NOT EXISTS idx_profiles_referred_by ON public.profiles(referred_by);
 
 -- clone_tasks 增加 stripe 相关字段（用于退款）
 ALTER TABLE public.clone_tasks

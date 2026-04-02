@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getAdminSession } from '@/lib/platform-admin/auth';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query } from '@/lib/db';
 import { getLocaleFromRequest } from '@/lib/get-locale';
 import { getT } from '@/translations';
 import { TotpSetupClient } from './TotpSetupClient';
@@ -20,13 +20,11 @@ export default async function PlatformAdminSecurityPage() {
   const t = getT(locale);
   const sec = t.securityAdmin;
 
-  const supabase = createAdminClient();
-  const { data } = await (supabase as any)
-    .from('platform_admins')
-    .select('totp_secret')
-    .eq('id', admin.id)
-    .single();
-  const totpEnabled = !!data?.totp_secret;
+  const result = await query(
+    'SELECT totp_secret FROM platform_admins WHERE id = $1',
+    [admin.id]
+  );
+  const totpEnabled = !!(result.rows[0]?.totp_secret);
 
   return (
     <div className="min-h-screen">

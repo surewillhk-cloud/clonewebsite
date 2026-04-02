@@ -4,12 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { query, isDbConfigured } from '@/lib/db';
 import { setAdminSession } from '@/lib/platform-admin/auth';
 import { getAdminTotpSecret, verifyTotpCode } from '@/lib/platform-admin/totp';
 
 export async function POST(req: NextRequest) {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isDbConfigured()) {
     return NextResponse.json(
       { error: 'Platform admin not configured' },
       { status: 503 }
@@ -22,13 +22,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'tempToken and totpCode required' }, { status: 400 });
     }
 
-    const supabase = createAdminClient();
-    const { data: tempRow } = await (supabase as any)
-      .from('platform_admin_totp_temp')
-      .select('admin_id')
-      .eq('token', tempToken)
-      .gt('expires_at', new Date().toISOString())
-      .single();
+    const tempResult = await query(
+      'SELECT admin_id FROM platform_admin_totp_temp WHERE token = $1 AND expires_at > $2',
+      [tempToken, new Date().toISOString()]
+    );
+    const tempRow = tempResult.rows[0];
 
     if (!tempRow?.admin_id) {
       return NextResponse.json({ error: 'Invalid or expired temp token' }, { status: 401 });
@@ -44,25 +42,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
     }
 
-    await (supabase as any)
-      .from('platform_admin_totp_temp')
-      .delete()
-      .eq('token', tempToken);
+    await query('DELETE FROM platform_admin_totp_temp WHERE token = $1', [tempToken]);
 
-    const { data: adminRow } = await (supabase as any)
-      .from('platform_admins')
-      .select('id, email, role')
-      .eq('id', tempRow.admin_id)
-      .single();
+    const adminResult = await query(
+      'SELECT id, email, role FROM platform_admins WHERE id = $1',
+      [tempRow.admin_id]
+    );
+    const adminRow = adminResult.rows[0];
 
     if (!adminRow) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 401 });
     }
 
-    await (supabase as any)
-      .from('platform_admins')
-      .update({ last_login_at: new Date().toISOString() })
-      .eq('id', adminRow.id);
+    await query(
+      'UPDATE platform_admins SET last_login_at = $1 WHERE id = $2',
+      [new Date().toISOString(), adminRow.id]
+    );
 
     await setAdminSession({
       id: adminRow.id,
