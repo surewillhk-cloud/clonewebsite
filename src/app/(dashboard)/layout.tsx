@@ -12,7 +12,7 @@ export default function DashboardLayout({
       <div className="flex min-h-screen">
         <ReferralBinder />
         <Sidebar />
-        <main className="ml-[220px] flex-1">{children}</main>
+        <main className="ml-[240px] flex-1 transition-all duration-300">{children}</main>
       </div>
     </AuthGuard>
   );

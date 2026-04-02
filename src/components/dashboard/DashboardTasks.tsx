@@ -50,16 +50,22 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
       .finally(() => setLoading(false));
   }, [initialTasks]);
 
+  const statusStyles = (status: string) => {
+    if (status === 'done') return 'bg-[var(--green-soft)] text-[var(--green)] border border-[var(--green)]/20';
+    if (status === 'failed') return 'bg-[var(--red-soft)] text-[var(--red)] border border-[var(--red)]/20';
+    return 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent)]/20';
+  };
+
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
-        <div className="grid grid-cols-[2.5fr_1fr_1fr_1fr_1fr_100px] border-b border-[var(--border)] bg-[var(--surface2)] px-5 py-3">
-          {[t.dashboardTasks.site, t.dashboardTasks.complexity, t.dashboardTasks.status, t.dashboardTasks.qualityScore, t.dashboardTasks.actions, ''].map((th) => (
+      <div className="overflow-hidden rounded-[14px] border border-[var(--border-faint)] bg-[var(--surface)]">
+        <div className="grid grid-cols-[2.5fr_1fr_1fr_1fr_100px] border-b border-[var(--border-faint)] bg-[var(--surface-raised)] px-5 py-3">
+          {[t.dashboardTasks.site, t.dashboardTasks.complexity, t.dashboardTasks.status, t.dashboardTasks.qualityScore, ''].map((th) => (
             <div key={th} className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">{th}</div>
           ))}
         </div>
         <div className="flex items-center justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border2)] border-t-[var(--accent)]" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
         </div>
       </div>
     );
@@ -67,12 +73,12 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
 
   if (tasks.length === 0) {
     return (
-      <div className="overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
+      <div className="overflow-hidden rounded-[14px] border border-[var(--border-faint)] bg-[var(--surface)]">
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="mb-3 text-4xl">📋</div>
           <div className="mb-1 font-heading text-[15px] font-bold">{t.dashboardTasks.noTasks}</div>
           <div className="mb-5 text-[13px] text-[var(--muted)]">{t.dashboardTasks.createFirst}</div>
-          <Link href="/clone/new" className="rounded-[10px] bg-[var(--accent)] px-5 py-2.5 text-[13px] font-medium text-white">
+          <Link href="/clone/new" className="btn-primary">
             ＋ {t.dashboard.newClone}
           </Link>
         </div>
@@ -81,8 +87,8 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
   }
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--surface)]">
-      <div className="grid grid-cols-[2.5fr_1fr_1fr_1fr_120px] border-b border-[var(--border)] bg-[var(--surface2)] px-5 py-3">
+    <div className="overflow-hidden rounded-[14px] border border-[var(--border-faint)] bg-[var(--surface)]">
+      <div className="grid grid-cols-[2.5fr_1fr_1fr_1fr_120px] border-b border-[var(--border-faint)] bg-[var(--surface-raised)] px-5 py-3">
         {[t.dashboardTasks.site, t.dashboardTasks.complexity, t.dashboardTasks.status, t.dashboardTasks.qualityScore, ''].map((th) => (
           <div key={th} className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">{th}</div>
         ))}
@@ -90,20 +96,20 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
       {tasks.map((row) => (
         <div
           key={row.id}
-          className="grid grid-cols-[2.5fr_1fr_1fr_1fr_120px] items-center border-b border-[var(--border)] px-5 py-4 transition-colors last:border-b-0 hover:bg-[var(--surface2)]"
+          className="grid grid-cols-[2.5fr_1fr_1fr_1fr_120px] items-center border-b border-[var(--border-faint)] px-5 py-4 transition-all duration-200 last:border-b-0 hover:bg-[var(--surface-raised)] group"
         >
           <div>
-            <div className="font-medium">{row.url}</div>
+            <div className="font-medium text-[var(--text)] group-hover:text-[var(--accent)] transition-colors">{row.url}</div>
             <div className="text-[11px] text-[var(--muted)]">
               {row.complexityLabel} · {formatRelativeTime(row.createdAt)}
             </div>
           </div>
           <div>
             <span
-              className={`inline-block rounded px-2 py-0.5 text-[10px] font-semibold ${
+              className={`inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold ${
                 row.complexity.includes('dynamic')
-                  ? 'bg-[rgba(255,122,61,0.08)] text-[var(--orange)]'
-                  : 'bg-[rgba(0,208,132,0.08)] text-[var(--green)]'
+                  ? 'bg-[var(--orange-soft)] text-[var(--orange)]'
+                  : 'bg-[var(--green-soft)] text-[var(--green)]'
               }`}
             >
               {row.complexityLabel}
@@ -111,13 +117,7 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
           </div>
           <div>
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                row.status === 'done'
-                  ? 'border border-[rgba(0,208,132,0.2)] bg-[rgba(0,208,132,0.1)] text-[var(--green)]'
-                  : row.status === 'failed'
-                    ? 'border border-[rgba(255,77,106,0.2)] bg-[rgba(255,77,106,0.1)] text-[var(--red)]'
-                    : 'border border-[rgba(79,126,255,0.2)] bg-[rgba(79,126,255,0.1)] text-[var(--accent)]'
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${statusStyles(row.status)}`}
             >
               {row.status === 'done' ? t.dashboardTasks.done : row.status === 'failed' ? t.dashboardTasks.failed : (
                 <>
@@ -143,13 +143,13 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
               <>
                 <Link
                   href={`/clone/${row.id}/result`}
-                  className="rounded-md border border-[rgba(79,126,255,0.2)] bg-[rgba(79,126,255,0.1)] px-3 py-1.5 text-[11px] font-medium text-[var(--accent)]"
+                  className="rounded-md border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all"
                 >
                   {t.dashboardTasks.preview}
                 </Link>
                 <a
                   href={`/api/clone/${row.id}/download`}
-                  className="rounded-md border border-[var(--border2)] px-3 py-1.5 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                  className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-all"
                   download
                 >
                   {t.dashboardTasks.download}
@@ -158,14 +158,14 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
             ) : row.status === 'failed' ? (
               <Link
                 href="/clone/new"
-                className="rounded-md border border-[var(--border2)] px-3 py-1.5 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-all"
               >
                 {t.dashboardTasks.retry}
               </Link>
             ) : (
               <Link
                 href={`/clone/${row.id}`}
-                className="rounded-md border border-[rgba(79,126,255,0.2)] bg-[rgba(79,126,255,0.1)] px-3 py-1.5 text-[11px] font-medium text-[var(--accent)]"
+                className="rounded-md border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all"
               >
                 {t.dashboardTasks.viewProgress}
               </Link>

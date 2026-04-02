@@ -1,39 +1,140 @@
 @import "tailwindcss";
 
+/* ============================================
+   Firecrawl-inspired Design System
+   Refined dark theme with layered surfaces
+   ============================================ */
+
 :root {
-  --bg: #080A0F;
-  --surface: #0E1117;
-  --surface2: #161B26;
-  --surface3: #1C2235;
-  --border: #1E2535;
-  --border2: #252D3D;
-  --text: #E8EDF5;
-  --muted: #6B7A99;
-  --accent: #4F7EFF;
-  --accent2: #7B5CFF;
-  --green: #00D084;
-  --orange: #FF7A3D;
-  --red: #FF4D6A;
-  --purple: #7B5CFF;
+  /* Core surfaces */
+  --bg: #0A0A0A;
+  --bg-lighter: #111111;
+  --surface: #141414;
+  --surface-raised: #1A1A1A;
+  --surface-hover: #222222;
+
+  /* Borders - layered intensity */
+  --border-faint: #1E1E1E;
+  --border: #262626;
+  --border-muted: #333333;
+  --border-loud: #404040;
+
+  /* Typography */
+  --text: #FAFAFA;
+  --text-secondary: #A3A3A3;
+  --muted: #737373;
+  --muted-dark: #525252;
+
+  /* Accent - Firecrawl orange */
+  --accent: #F97316;
+  --accent-hover: #FB923C;
+  --accent-soft: rgba(249, 115, 22, 0.1);
+  --accent-glow: rgba(249, 115, 22, 0.15);
+  --accent-border: rgba(249, 115, 22, 0.3);
+
+  /* Secondary accent - blue */
+  --accent2: #3B82F6;
+  --accent2-soft: rgba(59, 130, 246, 0.1);
+
+  /* Status colors */
+  --green: #22C55E;
+  --green-soft: rgba(34, 197, 94, 0.1);
+  --orange: #F97316;
+  --orange-soft: rgba(249, 115, 22, 0.1);
+  --red: #EF4444;
+  --red-soft: rgba(239, 68, 68, 0.1);
+  --purple: #A855F7;
+  --purple-soft: rgba(168, 85, 247, 0.1);
+  --yellow: #EAB308;
+  --yellow-soft: rgba(234, 179, 8, 0.1);
+
+  /* Gradients */
+  --gradient-accent: linear-gradient(135deg, #F97316 0%, #FB923C 50%, #FBBF24 100%);
+  --gradient-hero: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.15) 0%, transparent 60%);
+  --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 40px rgba(249, 115, 22, 0.15);
+  --shadow-glow-hover: 0 0 60px rgba(249, 115, 22, 0.25);
 }
 
 @theme inline {
   --font-sans: var(--font-dm-sans), var(--font-noto-sc), 'DM Sans', 'Noto Sans SC', sans-serif;
   --font-heading: var(--font-syne), var(--font-noto-sc), 'Syne', 'Noto Sans SC', sans-serif;
+
+  /* Surface colors */
   --color-bg: var(--bg);
+  --color-bg-lighter: var(--bg-lighter);
   --color-surface: var(--surface);
-  --color-surface2: var(--surface2);
-  --color-surface3: var(--surface3);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+
+  /* Border colors */
+  --color-border-faint: var(--border-faint);
   --color-border: var(--border);
-  --color-border2: var(--border2);
+  --color-border-muted: var(--border-muted);
+  --color-border-loud: var(--border-loud);
+
+  /* Text colors */
   --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
   --color-muted: var(--muted);
+  --color-muted-dark: var(--muted-dark);
+
+  /* Accent colors */
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-border: var(--accent-border);
   --color-accent2: var(--accent2);
+  --color-accent2-soft: var(--accent2-soft);
+
+  /* Status colors */
   --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
   --color-orange: var(--orange);
+  --color-orange-soft: var(--orange-soft);
   --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
   --color-purple: var(--purple);
+  --color-purple-soft: var(--purple-soft);
+  --color-yellow: var(--yellow);
+  --color-yellow-soft: var(--yellow-soft);
+}
+
+/* ============================================
+   Base styles
+   ============================================ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-muted) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-muted);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--border-loud);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -42,4 +143,225 @@ body {
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   Animation keyframes
+   ============================================ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ============================================
+   Utility classes
+   ============================================ */
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+/* ============================================
+   Card hover effects
+   ============================================ */
+
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   Button styles
+   ============================================ */
+
+.btn-primary {
+  background: var(--gradient-accent);
+  background-size: 200% 200%;
+  color: white;
+  font-weight: 500;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background-position: 100% 0;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ============================================
+   Nav link hover - underline slide effect
+   ============================================ */
+
+.nav-link {
+  position: relative;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--text);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1px;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* ============================================
+   Feature card hover - border glow
+   ============================================ */
+
+.feature-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, var(--accent-border) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-muted);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   Stat number - gradient text
+   ============================================ */
+
+.stat-number {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   Section heading
+   ============================================ */
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-family: var(--font-heading);
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.section-desc {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 480px;
+  line-height: 1.7;
 }
