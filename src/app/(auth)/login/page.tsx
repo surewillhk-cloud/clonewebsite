@@ -36,47 +36,55 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--purple)] mb-6">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0 bg-[var(--bg)]">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-[var(--accent)]/10 via-[var(--purple)]/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-[var(--accent)]/10 via-[var(--purple)]/5 to-transparent rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-md px-4">
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--purple)] flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <span className="font-heading text-xl font-bold text-[var(--text)]">CH007</span>
+          </Link>
           <h1 className="font-heading text-3xl font-extrabold text-[var(--text)] mb-2">
-            欢迎回来
+            {t.auth.loginTitle}
           </h1>
           <p className="text-[var(--muted)]">
-            输入您的账号信息登录
+            {t.auth.loginSubtitle}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-xl shadow-black/5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-xl p-8 shadow-2xl shadow-black/10">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-[13px] font-medium text-[var(--text)] mb-2">
-                邮箱地址
+                {t.auth.email}
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
-                placeholder="you@example.com"
+                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)]/80 px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                placeholder={t.auth.emailPlaceholder}
                 required
               />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[var(--text)] mb-2">
-                密码
+                {t.auth.password}
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
-                placeholder="••••••••"
+                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)]/80 px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                placeholder={t.auth.passwordPlaceholder}
                 required
               />
             </div>
@@ -98,24 +106,26 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  登录中...
+                  {t.auth.loggingIn}
                 </span>
-              ) : '登录'}
+              ) : t.auth.loginBtn}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-[13px] text-[var(--muted)]">
-              还没有账号？{' '}
+              {t.auth.noAccount}{' '}
               <Link href="/register" className="text-[var(--accent)] font-medium hover:underline">
-                立即注册
+                {t.auth.register}
               </Link>
             </p>
           </div>
         </div>
 
         <p className="text-center text-[12px] text-[var(--muted)] mt-8">
-          CH007 — AI 网站克隆平台
+          <Link href="/" className="hover:text-[var(--text)] transition-colors">
+            ← {t.auth.welcomeBack}
+          </Link>
         </p>
       </div>
     </div>
