@@ -2,18 +2,12 @@
 
 import { SessionProvider } from 'next-auth/react';
 import { LocaleProvider } from '@/contexts/LocaleContext';
-import { AuthGuard } from '@/components/auth/AuthGuard';
 
-interface ProvidersProps {
-  children: React.ReactNode;
-  protectedRoutes?: string[];
-}
-
-export function Providers({ children, protectedRoutes = [] }: ProvidersProps) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <LocaleProvider>
-        <AuthGuard>{children}</AuthGuard>
+        {children}
       </LocaleProvider>
     </SessionProvider>
   );
