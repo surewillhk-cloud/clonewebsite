@@ -89,7 +89,7 @@ async function processWebClone(task: CloneTask): Promise<void> {
     );
 
     let qualityScore = 85;
-    let zipPathToUpload = zipPath;
+    const zipPathToUpload = zipPath;
     const dockerOk = await isDockerAvailable();
 
     if (dockerOk) {
@@ -123,8 +123,6 @@ async function processWebClone(task: CloneTask): Promise<void> {
           passed = true;
           break;
         }
-
-        if (attempt >= MAX_AUTO_FIX_RETRIES) break;
 
         await setTaskStatus(id, {
           progress: 80,

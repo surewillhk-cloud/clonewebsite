@@ -35,13 +35,20 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const method = request.method;
 
+  if (shouldSkip(pathname)) {
+    return NextResponse.next();
+  }
+
   const response = NextResponse.next();
 
-  if (!response.body || shouldSkip(pathname)) return response;
+  if (!response.body) {
+    return response;
+  }
 
-  const reader = response.body.getReader();
+  const originalBody = response.body;
   const stream = new ReadableStream({
     async start(controller) {
+      const reader = originalBody.getReader();
       try {
         while (true) {
           const { done, value } = await reader.read();

@@ -122,9 +122,7 @@ export default function RootLayout({
 }
 `;
 
-  const globalsCss = `@tailwind base;
-@tailwind components;
-@tailwind utilities;
+  const globalsCss = `@import "tailwindcss";
 
 :root {
   --primary: ${colorTheme.primary ?? '#4F7EFF'};
@@ -165,14 +163,7 @@ body {
   };
 
   const tailwindConfig = `/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './app/**/*.{js,ts,jsx,tsx}',
-    './components/**/*.{js,ts,jsx,tsx}',
-  ],
-  theme: { extend: {} },
-  plugins: [],
-};
+export default {};
 `;
 
   const tsconfig = {
@@ -202,14 +193,14 @@ const nextConfig = {};
 module.exports = nextConfig;
 `;
 
-  const postcssConfig = `module.exports = {
+  const postcssConfig = `export default {
   plugins: {
-    tailwindcss: {},
+    '@tailwindcss/postcss': {},
   },
 };
 `;
 
-  await fs.writeFile(path.join(projectDir, 'postcss.config.js'), postcssConfig, 'utf-8');
+  await fs.writeFile(path.join(projectDir, 'postcss.config.mjs'), postcssConfig, 'utf-8');
   await fs.writeFile(path.join(appDir, 'page.tsx'), pageTsx, 'utf-8');
   await fs.writeFile(path.join(appDir, 'layout.tsx'), layoutTsx, 'utf-8');
   await fs.writeFile(path.join(appDir, 'globals.css'), globalsCss, 'utf-8');
@@ -219,7 +210,7 @@ module.exports = nextConfig;
     'utf-8'
   );
   await fs.writeFile(
-    path.join(projectDir, 'tailwind.config.js'),
+    path.join(projectDir, 'tailwind.config.mjs'),
     tailwindConfig,
     'utf-8'
   );

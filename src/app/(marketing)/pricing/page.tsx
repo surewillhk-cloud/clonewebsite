@@ -64,8 +64,8 @@ export default async function PricingPage() {
           <p className="mb-4 text-[14px] leading-[1.7] text-[var(--muted)]">{pp.whyNoFixedP2}</p>
           <div className="rounded-[10px] border border-[var(--border2)] bg-[var(--surface2)] p-4 font-mono text-[14px] text-[var(--text)]">
             <span><span className="text-[var(--orange)]">{pp.formula}</span> {pp.formulaEquals} <span className="text-[var(--accent)]">{pp.actualCost}</span> × <span className="text-[var(--accent)]">{pp.multiplier}</span></span>
-            <span className="mt-1 block text-[12px] text-[var(--muted)]">// {pp.formulaComment1}</span>
-            <span className="block text-[12px] text-[var(--muted)]">// {pp.formulaComment2}</span>
+            <span className="mt-1 block text-[12px] text-[var(--muted)]">{'// '}{pp.formulaComment1}</span>
+            <span className="block text-[12px] text-[var(--muted)]">{'// '}{pp.formulaComment2}</span>
           </div>
         </div>
         <div>

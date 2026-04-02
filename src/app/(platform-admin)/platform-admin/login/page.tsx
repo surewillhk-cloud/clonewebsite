@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
+import Link from 'next/link';
 
 export default function PlatformAdminLoginPage() {
   const T = useTranslation();
@@ -155,9 +156,9 @@ export default function PlatformAdminLoginPage() {
           </form>
         )}
         <p className="mt-6 text-center text-[13px] text-[var(--muted)]">
-          <a href="/" className="text-[var(--accent)] hover:underline">
+          <Link href="/" className="text-[var(--accent)] hover:underline">
             {t.backHome}
-          </a>
+          </Link>
         </p>
       </div>
     </div>

@@ -114,8 +114,7 @@ export async function scrapeWithPlaywright(
       scraperLayer: 2,
       scrapedAt: new Date(),
     };
-  } catch (err) {
+  } finally {
     await browser.close().catch(() => {});
-    throw err;
   }
 }

@@ -18,7 +18,12 @@ const BLOCKED_HOSTS = new Set([
 const PRIVATE_IP_OLD =
   /^(10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|127\.|0\.|169\.254\.)/;
 
-const IPV6_PRIVATE = /^(::1|::|::ffff:0:0|fc00::\/7|fe80::\/10|100::\/64)/i;
+const IPV6_PRIVATE_PREFIXES = ['::1', '::', '::ffff:', 'fc', 'fd', 'fe80:', 'fe90:', 'fea0:', 'feb0:', '100:'];
+
+function isPrivateIPv6(hostname: string): boolean {
+  const clean = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  return IPV6_PRIVATE_PREFIXES.some((prefix) => clean.startsWith(prefix));
+}
 
 export interface UrlValidationResult {
   ok: boolean;
@@ -46,7 +51,7 @@ export function validateScrapeUrl(urlStr: string): UrlValidationResult {
       return { ok: false, error: 'Private IP ranges are not allowed' };
     }
 
-    if (IPV6_PRIVATE.test(hostname)) {
+    if (isPrivateIPv6(hostname)) {
       return { ok: false, error: 'IPv6 private or reserved addresses are not allowed' };
     }
 

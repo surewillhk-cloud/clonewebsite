@@ -89,7 +89,6 @@ export function createCloneEventStream(taskId: string): ReadableStream<Uint8Arra
 
     cancel() {
       unsubscribe?.();
-      cloneEventEmitter.unsubscribe(taskId);
     },
   });
 }

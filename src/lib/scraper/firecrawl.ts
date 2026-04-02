@@ -40,6 +40,7 @@ export async function scrapeWithFirecrawl(
   const body: Record<string, unknown> = {
     url: opts.url,
     formats,
+    ...(opts.waitFor ? { waitFor: opts.waitFor } : {}),
   };
   if (opts.headers && Object.keys(opts.headers).length > 0) {
     body.headers = opts.headers;

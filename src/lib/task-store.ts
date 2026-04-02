@@ -97,6 +97,15 @@ export async function setTaskStatus(
   taskId: string,
   updates: Partial<TaskStatusState>
 ): Promise<void> {
+  const existing = memoryStore.get(taskId);
+  const newValue = existing ? { ...existing, ...updates } : {
+    status: 'queued',
+    progress: 0,
+    currentStep: '',
+    retryCount: 0,
+    ...updates,
+  };
+
   if (isDbConfigured()) {
     try {
       const row = toDbRow(updates);
@@ -122,14 +131,6 @@ export async function setTaskStatus(
     }
   }
 
-  const existing = memoryStore.get(taskId);
-  const newValue = existing ? { ...existing, ...updates } : {
-    status: 'queued',
-    progress: 0,
-    currentStep: '',
-    retryCount: 0,
-    ...updates,
-  };
   memoryStore.set(taskId, newValue);
 }
 
