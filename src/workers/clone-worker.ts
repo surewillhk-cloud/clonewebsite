@@ -2,6 +2,7 @@
  * 克隆任务主流程
  * 从第一天起按 cloneType 分支设计，为 APP 克隆预留扩展点
  * 含自动修复循环：构建失败时最多重试 3 次，Claude 修复后重新测试
+ * 支持 SSE 流式事件推送
  */
 
 import type { CloneTask } from '@/types/clone';
@@ -28,8 +29,13 @@ import { checkFailureRateAndMaybeEnableMaintenance } from '@/lib/monitoring/fail
 import { getUserEmail } from '@/lib/email/get-user-email';
 import { recordTaskCost } from '@/lib/billing/cost-tracker';
 import { validateScrapeUrl } from '@/lib/url-validate';
+import { cloneEventEmitter, type CloneEvent } from '@/lib/events/emitter';
 
 const MAX_AUTO_FIX_RETRIES = 3;
+
+function emit(taskId: string, event: Omit<CloneEvent, 'taskId' | 'timestamp'>) {
+  cloneEventEmitter.emit(taskId, event);
+}
 
 export async function processCloneTask(task: CloneTask): Promise<void> {
   switch (task.cloneType) {
@@ -47,7 +53,6 @@ async function processWebClone(task: CloneTask): Promise<void> {
   if (!targetUrl) {
     throw new Error('Web clone requires targetUrl');
   }
-  // 防御性校验：防止 SSRF（任务来自 Stripe 等外部时）
   if (targetUrl.startsWith('http')) {
     const urlCheck = validateScrapeUrl(targetUrl);
     if (!urlCheck.ok) {
@@ -57,6 +62,8 @@ async function processWebClone(task: CloneTask): Promise<void> {
 
   try {
     await setTaskStatus(id, { status: 'scraping', progress: 10, currentStep: '正在抓取页面...' });
+    emit(id, { type: 'scraping', progress: 10, currentStep: '正在抓取页面...' });
+
     const scrapeResult = await scrape({
       url: targetUrl,
       screenshot: true,
@@ -67,9 +74,13 @@ async function processWebClone(task: CloneTask): Promise<void> {
     });
 
     await setTaskStatus(id, { status: 'analyzing', progress: 30, currentStep: 'AI 分析结构中...' });
+    emit(id, { type: 'analyzing', progress: 30, currentStep: 'AI 分析结构中...' });
+
     const analysisResult = await analyzePageStructure(scrapeResult);
 
     await setTaskStatus(id, { status: 'generating', progress: 50, currentStep: '生成 Next.js 代码...' });
+    emit(id, { type: 'generating', progress: 50, currentStep: '生成 Next.js 代码...' });
+
     const { projectPath, zipPath } = await buildNextJsProject(
       scrapeResult,
       analysisResult,
@@ -87,9 +98,18 @@ async function processWebClone(task: CloneTask): Promise<void> {
       let lastError = '';
 
       while (attempt < MAX_AUTO_FIX_RETRIES) {
+        const progress = 80 + Math.floor((attempt / MAX_AUTO_FIX_RETRIES) * 15);
         await setTaskStatus(id, {
           status: 'testing',
-          progress: 80 + Math.floor((attempt / MAX_AUTO_FIX_RETRIES) * 15),
+          progress,
+          currentStep:
+            attempt === 0
+              ? '自动化测试中...'
+              : `自动修复第 ${attempt} 次，重新测试中...`,
+        });
+        emit(id, {
+          type: attempt === 0 ? 'testing' : 'fixing',
+          progress,
           currentStep:
             attempt === 0
               ? '自动化测试中...'
@@ -109,6 +129,12 @@ async function processWebClone(task: CloneTask): Promise<void> {
         await setTaskStatus(id, {
           progress: 80,
           currentStep: `构建失败，AI 自动修复中（${attempt + 1}/${MAX_AUTO_FIX_RETRIES}）...`,
+        });
+        emit(id, {
+          type: 'fixing',
+          progress: 80,
+          currentStep: `构建失败，AI 自动修复中（${attempt + 1}/${MAX_AUTO_FIX_RETRIES}）...`,
+          data: { attempt, maxRetries: MAX_AUTO_FIX_RETRIES },
         });
 
         const fixResult = await fixCodeFromBuildError(projectPath, lastError);
@@ -152,6 +178,7 @@ async function processWebClone(task: CloneTask): Promise<void> {
           status: 'failed',
           currentStep: '自动修复均已失败，额度已退回（如有配置）',
         });
+        emit(id, { type: 'error', progress: 0, currentStep: failReason });
         checkFailureRateAndMaybeEnableMaintenance().catch(() => {});
         return;
       }
@@ -159,6 +186,8 @@ async function processWebClone(task: CloneTask): Promise<void> {
 
     if (isR2Configured()) {
       await setTaskStatus(id, { progress: 95, currentStep: '上传代码包到 R2...' });
+      emit(id, { type: 'uploading', progress: 95, currentStep: '上传代码包到 R2...' });
+
       const r2Key = await uploadZipToR2(zipPathToUpload, id);
       await setTaskStatus(id, {
         status: 'done',
@@ -168,6 +197,8 @@ async function processWebClone(task: CloneTask): Promise<void> {
         r2Key,
         localZipPath: null,
       });
+      emit(id, { type: 'done', progress: 100, currentStep: '克隆完成', data: { qualityScore, r2Key } });
+
       recordTaskCost({
         taskId: id,
         complexity: task.complexity,
@@ -180,7 +211,6 @@ async function processWebClone(task: CloneTask): Promise<void> {
             sendTaskComplete(email, {
               taskId: id,
               targetUrl: targetUrl,
-              // downloadUrl 由前端从 /api/clone/[id]/download 获取，邮件中仅提供结果页链接
             }).catch(() => {});
           }
         });
@@ -194,6 +224,8 @@ async function processWebClone(task: CloneTask): Promise<void> {
         r2Key: null,
         localZipPath: zipPathToUpload,
       });
+      emit(id, { type: 'done', progress: 100, currentStep: '克隆完成', data: { qualityScore } });
+
       recordTaskCost({
         taskId: id,
         complexity: task.complexity,
@@ -221,6 +253,7 @@ async function processWebClone(task: CloneTask): Promise<void> {
       status: 'failed',
       currentStep: errMsg,
     });
+    emit(id, { type: 'error', progress: 0, currentStep: errMsg });
     checkFailureRateAndMaybeEnableMaintenance().catch(() => {});
     refundCreditsOnFailure(
       task.userId,
@@ -265,14 +298,18 @@ async function processAppClone(task: CloneTask): Promise<void> {
   try {
     if (mode === 'screenshot') {
       await setTaskStatus(id, { status: 'analyzing', progress: 20, currentStep: 'AI 分析截图中...' });
+      emit(id, { type: 'analyzing', progress: 20, currentStep: 'AI 分析截图中...' });
       analysis = await analyzeAppScreenshots(appScreenshots!);
     } else if (mode === 'apk') {
       await setTaskStatus(id, { status: 'analyzing', progress: 20, currentStep: '反编译 APK 并分析布局...' });
+      emit(id, { type: 'analyzing', progress: 20, currentStep: '反编译 APK 并分析布局...' });
       analysis = await analyzeApk(appR2Key!);
     } else if (mode === 'traffic') {
-      await setTaskStatus(id, { status: 'analyzing', progress: 10, currentStep: '反编译 APK 分析布局...' });
+      await setTaskStatus(id, { status: 'scraping', progress: 10, currentStep: '反编译 APK 分析布局...' });
+      emit(id, { type: 'scraping', progress: 10, currentStep: '反编译 APK 分析布局...' });
       const apkAnalysis = await analyzeApk(appR2Key!);
       await setTaskStatus(id, { status: 'scraping', progress: 30, currentStep: '模拟器抓取 API 流量...' });
+      emit(id, { type: 'scraping', progress: 30, currentStep: '模拟器抓取 API 流量...' });
       const { endpoints } = await captureTrafficFromApk(appR2Key!, id);
       analysis = { ...apkAnalysis, apiEndpoints: endpoints };
     } else {
@@ -280,10 +317,14 @@ async function processAppClone(task: CloneTask): Promise<void> {
     }
 
     await setTaskStatus(id, { status: 'generating', progress: 50, currentStep: '生成 Expo 代码...' });
+    emit(id, { type: 'generating', progress: 50, currentStep: '生成 Expo 代码...' });
+
     const { zipPath } = await buildExpoProject(analysis, id);
 
     if (isR2Configured()) {
       await setTaskStatus(id, { progress: 90, currentStep: '上传代码包到 R2...' });
+      emit(id, { type: 'uploading', progress: 90, currentStep: '上传代码包到 R2...' });
+
       const r2Key = await uploadZipToR2(zipPath, id);
       await setTaskStatus(id, {
         status: 'done',
@@ -293,6 +334,8 @@ async function processAppClone(task: CloneTask): Promise<void> {
         r2Key,
         localZipPath: null,
       });
+      emit(id, { type: 'done', progress: 100, currentStep: '克隆完成', data: { qualityScore: 85, r2Key } });
+
       recordTaskCost({
         taskId: id,
         complexity: 'static_single',
@@ -318,6 +361,8 @@ async function processAppClone(task: CloneTask): Promise<void> {
         r2Key: null,
         localZipPath: zipPath,
       });
+      emit(id, { type: 'done', progress: 100, currentStep: '克隆完成', data: { qualityScore: 85 } });
+
       recordTaskCost({
         taskId: id,
         complexity: 'static_single',
@@ -341,6 +386,7 @@ async function processAppClone(task: CloneTask): Promise<void> {
       reason: errMsg,
     });
     await setTaskStatus(id, { status: 'failed', currentStep: errMsg });
+    emit(id, { type: 'error', progress: 0, currentStep: errMsg });
     checkFailureRateAndMaybeEnableMaintenance().catch(() => {});
     if (isEmailConfigured()) {
       getUserEmail(userId).then((email) => {

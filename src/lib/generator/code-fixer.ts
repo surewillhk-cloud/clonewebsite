@@ -1,20 +1,29 @@
 /**
  * 根据构建错误修复生成的项目代码
- * 调用 Claude API 分析错误并产出修复后的文件内容
+ * 调用 AI API 分析错误并产出修复后的文件内容
+ * 支持多模型：Claude, OpenAI, Gemini, Groq
+ * 使用 Edit Intent 分析选择最佳修复策略
+ * 支持 Morph 风格的 XML 格式编辑
  */
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { getClaudeClient } from '@/lib/claude/client';
+import { getAIClient, getDefaultProvider, type AIChatMessage } from '@/lib/ai/provider-manager';
+import { analyzeEditIntent, getFixStrategyForIntent, type EditType } from '@/lib/ai/edit-intent-analyzer';
+import { parseMorphEdits, applyMorphEdits, type MorphEditBlock } from '@/lib/ai/morph-edit';
 import { PROMPTS } from '@/lib/claude/prompts';
 
 export interface FixResult {
   fixed: boolean;
   filesModified: string[];
   error?: string;
+  intent?: {
+    type: EditType;
+    confidence: number;
+    reasoning: string;
+  };
 }
 
-/** 收集项目中所有源码文件的路径和内容 */
 async function collectSourceFiles(
   projectPath: string
 ): Promise<Array<{ path: string; content: string }>> {
@@ -34,9 +43,7 @@ async function collectSourceFiles(
           await collectDir(path.join(dir, e.name), relPath);
         }
       }
-    } catch {
-      // Dir may not exist
-    }
+    } catch {}
   };
 
   await collectDir(appDir, 'app');
@@ -44,8 +51,15 @@ async function collectSourceFiles(
   return files;
 }
 
-/** 从 Claude 响应中解析 JSON 数组 */
 function parseFixResponse(text: string): Array<{ path: string; content: string }> {
+  const morphEdits = parseMorphEdits(text);
+  if (morphEdits.length > 0) {
+    return morphEdits.map(e => ({
+      path: e.targetFile,
+      content: e.update,
+    }));
+  }
+
   const trimmed = text.trim();
   let jsonStr = trimmed;
 
@@ -68,11 +82,6 @@ function parseFixResponse(text: string): Array<{ path: string; content: string }
   }
 }
 
-/**
- * 根据构建错误修复项目中的代码
- * @param projectPath 项目目录
- * @param buildError 构建错误输出（stderr + stdout）
- */
 export async function fixCodeFromBuildError(
   projectPath: string,
   buildError: string
@@ -82,82 +91,154 @@ export async function fixCodeFromBuildError(
     return { fixed: false, filesModified: [], error: 'No source files found' };
   }
 
-  const client = getClaudeClient();
+  const errorType = detectErrorType(buildError);
+  const intent = await analyzeEditIntent(buildError, errorType);
+  const provider = getDefaultProvider();
+  const client = getAIClient(provider);
+
+  console.log(`[code-fixer] Detected intent: ${intent.type} (${intent.confidence})`);
+
+  const fixStrategy = getFixStrategyForIntent(intent);
+
   const filesContext = sourceFiles
     .map((f) => `--- ${f.path} ---\n${f.content}`)
     .join('\n\n');
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 8192,
-    messages: [
+  const errorSlice = buildError.slice(0, 4000);
+  const contextSlice = filesContext.slice(0, 30000);
+
+  let prompt: string;
+  let messages: AIChatMessage[];
+
+  if (provider === 'anthropic') {
+    messages = [
       {
         role: 'user',
-        content: `${PROMPTS.buildFix}
+        content: `${fixStrategy}
 
 构建错误：
 \`\`\`
-${buildError.slice(0, 4000)}
+${errorSlice}
 \`\`\`
 
 当前项目文件：
-${filesContext.slice(0, 30000)}
+${contextSlice}
 
-请输出需要修复的文件，格式为 JSON 数组：[{"path":"app/page.tsx","content":"...完整内容..."}]`,
+请使用以下格式之一输出修复内容：
+
+格式1 - JSON数组：
+[{"path":"app/page.tsx","content":"...完整内容..."}]
+
+格式2 - Morph XML格式：
+<edit target_file="app/page.tsx">
+// 精确的代码修改
+</edit>
+
+请输出需要修复的文件。`,
       },
-    ],
-  });
+    ];
+  } else {
+    prompt = `${fixStrategy}
 
-  const text =
-    response.content?.[0]?.type === 'text'
-      ? (response.content[0] as { type: 'text'; text: string }).text
-      : '';
+构建错误：
+\`\`\`
+${errorSlice}
+\`\`\`
 
-  const fixes = parseFixResponse(text);
-  if (fixes.length === 0) {
-    return {
-      fixed: false,
-      filesModified: [],
-      error: 'Claude did not return valid file fixes',
-    };
+当前项目文件：
+${contextSlice}
+
+请使用以下格式之一输出修复内容：
+
+格式1 - JSON数组：
+[{"path":"app/page.tsx","content":"...完整内容..."}]
+
+格式2 - Morph XML格式：
+<edit target_file="app/page.tsx">
+// 精确的代码修改
+</edit>
+
+请输出需要修复的文件。`;
+    messages = [{ role: 'user', content: prompt }];
   }
 
-  const validPaths = new Set(
-    sourceFiles.map((f) => f.path.replace(/\\/g, '/'))
-  );
-  const filesModified: string[] = [];
+  try {
+    const response = await client.chat(messages, {
+      model: provider === 'anthropic' ? 'claude-sonnet-4-20250514' : undefined,
+      temperature: 0.3,
+      maxTokens: 8192,
+    });
 
-  for (const fix of fixes) {
-    const normalizedPath = fix.path.replace(/\\/g, '/').replace(/\.\./g, '');
-    const fullPath = path.resolve(projectPath, normalizedPath);
-
-    if (!fullPath.startsWith(path.resolve(projectPath))) {
-      console.warn('[code-fixer] Path traversal attempt blocked:', normalizedPath);
-      continue;
+    const fixes = parseFixResponse(response);
+    if (fixes.length === 0) {
+      return {
+        fixed: false,
+        filesModified: [],
+        error: 'AI did not return valid file fixes',
+        intent: { type: intent.type, confidence: intent.confidence, reasoning: intent.reasoning },
+      };
     }
 
-    if (!validPaths.has(normalizedPath)) {
-      const allowed = [...validPaths].some(
-        (p) => normalizedPath === p || normalizedPath.startsWith(p + '/')
-      );
-      if (!allowed) {
-        console.warn('[code-fixer] Path not in valid paths:', normalizedPath);
+    const validPaths = new Set(
+      sourceFiles.map((f) => f.path.replace(/\\/g, '/'))
+    );
+    const filesModified: string[] = [];
+
+    for (const fix of fixes) {
+      const normalizedPath = fix.path.replace(/\\/g, '/').replace(/\.\./g, '');
+      const fullPath = path.resolve(projectPath, normalizedPath);
+
+      if (!fullPath.startsWith(path.resolve(projectPath))) {
+        console.warn('[code-fixer] Path traversal attempt blocked:', normalizedPath);
         continue;
+      }
+
+      if (!validPaths.has(normalizedPath)) {
+        const allowed = [...validPaths].some(
+          (p) => normalizedPath === p || normalizedPath.startsWith(p + '/')
+        );
+        if (!allowed) {
+          console.warn('[code-fixer] Path not in valid paths:', normalizedPath);
+          continue;
+        }
+      }
+
+      try {
+        const parentDir = path.dirname(fullPath);
+        await fs.mkdir(parentDir, { recursive: true });
+        await fs.writeFile(fullPath, fix.content, 'utf-8');
+        filesModified.push(normalizedPath);
+      } catch (err) {
+        console.error('[code-fixer] Failed to write', normalizedPath, err);
       }
     }
 
-    try {
-      const parentDir = path.dirname(fullPath);
-      await fs.mkdir(parentDir, { recursive: true });
-      await fs.writeFile(fullPath, fix.content, 'utf-8');
-      filesModified.push(normalizedPath);
-    } catch (err) {
-      console.error('[code-fixer] Failed to write', normalizedPath, err);
-    }
+    return {
+      fixed: filesModified.length > 0,
+      filesModified,
+      intent: { type: intent.type, confidence: intent.confidence, reasoning: intent.reasoning },
+    };
+  } catch (err) {
+    return {
+      fixed: false,
+      filesModified: [],
+      error: err instanceof Error ? err.message : String(err),
+      intent: { type: intent.type, confidence: intent.confidence, reasoning: intent.reasoning },
+    };
   }
+}
 
-  return {
-    fixed: filesModified.length > 0,
-    filesModified,
-  };
+function detectErrorType(error: string): 'build' | 'typescript' | 'runtime' | 'other' {
+  const msg = error.toLowerCase();
+
+  if (msg.includes('typescript') || msg.includes('ts-') || msg.includes('type error')) {
+    return 'typescript';
+  }
+  if (msg.includes('syntaxerror') || msg.includes('parseerror') || msg.includes('cannot find module')) {
+    return 'build';
+  }
+  if (msg.includes('referenceerror') || msg.includes('undefined is not') || msg.includes('cannot read property')) {
+    return 'runtime';
+  }
+  return 'other';
 }
