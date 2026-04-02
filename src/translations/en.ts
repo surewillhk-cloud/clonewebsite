@@ -175,6 +175,8 @@ export const en = {
     agreeTerms: 'By registering, you agree to our Terms of Service',
     orContinue: 'or continue with',
     welcomeBack: 'Welcome back',
+    signInWithGoogle: 'Continue with Google',
+    signUpWithGoogle: 'Sign up with Google',
   },
   settings: {
     title: 'Settings',

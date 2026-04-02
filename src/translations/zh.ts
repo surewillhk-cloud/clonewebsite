@@ -175,6 +175,8 @@ export const zh = {
     agreeTerms: '注册即表示您同意我们的服务条款',
     orContinue: '或继续使用',
     welcomeBack: '欢迎回来',
+    signInWithGoogle: '使用 Google 登录',
+    signUpWithGoogle: '使用 Google 注册',
   },
   settings: {
     title: '设置',
