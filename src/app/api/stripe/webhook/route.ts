@@ -16,6 +16,9 @@ import { createAdminClient, isSupabaseConfigured } from '@/lib/supabase/admin';
 import { sendPaymentFailed, sendAdminAlert, isEmailConfigured } from '@/lib/email/send';
 import { getAdminEmails } from '@/lib/monitoring/get-admin-emails';
 
+const processedEvents = new Set<string>();
+const MAX_PROCESSED_SIZE = 10000;
+
 async function notifyWebhookFailure(subject: string, error: string, details?: Record<string, string>) {
   const emails = await getAdminEmails();
   if (emails.length === 0 || !isEmailConfigured()) return;
@@ -56,6 +59,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (processedEvents.has(event.id)) {
+      return NextResponse.json({ received: true, status: 'already_processed' });
+    }
+
     switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -160,6 +167,11 @@ export async function POST(req: NextRequest) {
     default:
       console.log('[stripe/webhook] Unhandled event:', event.type);
   }
+
+    if (processedEvents.size >= MAX_PROCESSED_SIZE) {
+      processedEvents.clear();
+    }
+    processedEvents.add(event.id);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[stripe/webhook] Processing error:', err);

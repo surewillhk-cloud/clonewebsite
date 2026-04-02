@@ -11,11 +11,14 @@ const BLOCKED_HOSTS = new Set([
   '[::1]',
   'metadata.google.internal',
   '169.254.169.254', // AWS/GCP/Azure 元数据
+  'metadata.azure.com',
+  'metadata.cloud.google.com',
 ]);
 
-// 私有 IP 段正则
-const PRIVATE_IP =
+const PRIVATE_IP_OLD =
   /^(10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|127\.|0\.|169\.254\.)/;
+
+const IPV6_PRIVATE = /^(::1|::|::ffff:0:0|fc00::\/7|fe80::\/10|100::\/64)/i;
 
 export interface UrlValidationResult {
   ok: boolean;
@@ -39,9 +42,20 @@ export function validateScrapeUrl(urlStr: string): UrlValidationResult {
       return { ok: false, error: 'Private or reserved addresses are not allowed' };
     }
 
-    if (PRIVATE_IP.test(hostname)) {
+    if (PRIVATE_IP_OLD.test(hostname)) {
       return { ok: false, error: 'Private IP ranges are not allowed' };
     }
+
+    if (IPV6_PRIVATE.test(hostname)) {
+      return { ok: false, error: 'IPv6 private or reserved addresses are not allowed' };
+    }
+
+    try {
+      const hostIPv6 = hostname.replace(/^\[|\]$/g, '');
+      if (hostIPv6 === '1' || hostIPv6 === '') {
+        return { ok: false, error: 'Invalid IPv6 address' };
+      }
+    } catch {}
 
     return { ok: true };
   } catch {

@@ -18,10 +18,9 @@ export interface PlatformAdmin {
 }
 
 function getSessionSecret(): string {
-  const secret =
-    process.env.PLATFORM_ADMIN_SESSION_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!secret || secret.length < 16) {
-    throw new Error('PLATFORM_ADMIN_SESSION_SECRET or SUPABASE_SERVICE_ROLE_KEY required (min 16 chars)');
+  const secret = process.env.PLATFORM_ADMIN_SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('PLATFORM_ADMIN_SESSION_SECRET required (min 32 chars for HMAC-SHA256)');
   }
   return secret;
 }

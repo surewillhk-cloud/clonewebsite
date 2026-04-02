@@ -54,8 +54,8 @@ export function middleware(request: NextRequest) {
           try {
             recordSlowRequest(pathname, method, duration);
             console.warn(`[slow] ${method} ${pathname} ${duration}ms`);
-          } catch {
-            // ignore
+          } catch (err) {
+            console.error('[middleware] Failed to record slow request:', err);
           }
         }
         controller.close();

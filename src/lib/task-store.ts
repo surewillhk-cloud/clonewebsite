@@ -120,13 +120,15 @@ export async function setTaskStatus(
     }
   }
 
-  const existing = memoryStore.get(taskId) ?? {
+  const existing = memoryStore.get(taskId);
+  const newValue = existing ? { ...existing, ...updates } : {
     status: 'queued',
     progress: 0,
     currentStep: '',
     retryCount: 0,
+    ...updates,
   };
-  memoryStore.set(taskId, { ...existing, ...updates });
+  memoryStore.set(taskId, newValue);
 }
 
 export async function createTaskInStore(

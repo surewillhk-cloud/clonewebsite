@@ -99,7 +99,6 @@ export async function startPreviewServer(taskId: string): Promise<string> {
     const install = spawn('npm', ['install'], {
       cwd: workDir,
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
     });
     let err = '';
     install.stderr?.on('data', (chunk: Buffer) => { err += chunk.toString(); });
@@ -114,7 +113,6 @@ export async function startPreviewServer(taskId: string): Promise<string> {
     const proc = spawn('npm', ['run', 'dev', '--', '-p', String(port), '-H', '127.0.0.1'], {
       cwd: workDir,
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
       env: { ...process.env, PORT: String(port), NODE_ENV: 'development' },
     });
 

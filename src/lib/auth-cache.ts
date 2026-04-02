@@ -12,8 +12,12 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 
+let lastGcTime = 0;
+
 function gc() {
   const now = Date.now();
+  if (now - lastGcTime < TTL_MS) return;
+  lastGcTime = now;
   for (const [k, v] of cache.entries()) {
     if (v.expiresAt < now) cache.delete(k);
   }
@@ -26,6 +30,8 @@ export function set(token: string, cookieString: string): void {
     expiresAt: Date.now() + TTL_MS,
   });
 }
+
+setInterval(() => gc(), TTL_MS);
 
 export function get(token: string): string | null {
   const entry = cache.get(token);

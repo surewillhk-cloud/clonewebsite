@@ -38,7 +38,7 @@ export async function processCloneTask(task: CloneTask): Promise<void> {
     case 'app':
       return await processAppClone(task);
     default:
-      throw new Error(`Unknown clone type: ${(task as CloneTask).cloneType}`);
+      throw new Error(`Unknown clone type: ${task.cloneType}`);
   }
 }
 
@@ -86,10 +86,10 @@ async function processWebClone(task: CloneTask): Promise<void> {
       let attempt = 0;
       let lastError = '';
 
-      while (attempt <= MAX_AUTO_FIX_RETRIES) {
+      while (attempt < MAX_AUTO_FIX_RETRIES) {
         await setTaskStatus(id, {
           status: 'testing',
-          progress: 80 + Math.floor((attempt / (MAX_AUTO_FIX_RETRIES + 1)) * 15),
+          progress: 80 + Math.floor((attempt / MAX_AUTO_FIX_RETRIES) * 15),
           currentStep:
             attempt === 0
               ? '自动化测试中...'
@@ -116,7 +116,6 @@ async function processWebClone(task: CloneTask): Promise<void> {
           console.warn('[clone-worker] Fix failed or no files modified:', id);
           break;
         }
-        zipPathToUpload = zipPath;
         await updateZipFromProject(projectPath, zipPath);
         attempt++;
       }
@@ -223,6 +222,12 @@ async function processWebClone(task: CloneTask): Promise<void> {
       currentStep: errMsg,
     });
     checkFailureRateAndMaybeEnableMaintenance().catch(() => {});
+    refundCreditsOnFailure(
+      task.userId,
+      task.creditsUsed,
+      id,
+      task.stripePaymentIntentId
+    ).catch((e) => console.error('[clone-worker] Refund failed:', e));
     if (isEmailConfigured()) {
       getUserEmail(task.userId).then((email) => {
         if (email) {

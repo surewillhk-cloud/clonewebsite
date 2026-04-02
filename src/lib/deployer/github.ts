@@ -4,6 +4,8 @@
 
 import { Octokit } from '@octokit/rest';
 import simpleGit from 'simple-git';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_ORG = process.env.GITHUB_ORG_NAME;
@@ -43,7 +45,7 @@ export async function createRepository(
       });
 
   const fullName = data.full_name!;
-  const cloneUrl = `https://${GITHUB_TOKEN}@github.com/${fullName}.git`;
+  const cloneUrl = `https://github.com/${fullName}.git`;
 
   return { fullName, cloneUrl };
 }
@@ -58,6 +60,15 @@ export async function pushToGitHub(
   await git.init();
   await git.addConfig('user.email', 'deploy@webecho.ai');
   await git.addConfig('user.name', 'WebEcho AI Deploy');
+
+  const gitDir = path.join(projectDir, '.git');
+  await fs.mkdir(gitDir, { recursive: true });
+  await fs.writeFile(
+    path.join(gitDir, 'credentials'),
+    `https://${GITHUB_TOKEN}@github.com`,
+    { mode: 0o600 }
+  );
+  await git.addConfig('credential.helper', `store --file ${path.join(gitDir, 'credentials')}`);
 
   await git.add('.');
   await git.commit('Initial commit - WebEcho AI clone');

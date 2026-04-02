@@ -37,7 +37,12 @@ export async function scrapeWithPlaywright(
     });
 
     if (opts.cookieString) {
-      const domain = new URL(opts.url).hostname;
+      let domain: string;
+      try {
+        domain = new URL(opts.url).hostname;
+      } catch {
+        domain = '';
+      }
       const pairs = opts.cookieString.split(';').map((s) => s.trim());
       const cookies = pairs
         .filter((p) => p.includes('='))
@@ -46,11 +51,13 @@ export async function scrapeWithPlaywright(
           return {
             name: (name ?? '').trim(),
             value: v.join('=').trim(),
-            domain: '.' + domain,
+            domain: domain,
             path: '/',
           };
         });
-      await context.addCookies(cookies);
+      if (cookies.length > 0) {
+        await context.addCookies(cookies);
+      }
     }
 
     const page = await context.newPage();
@@ -86,8 +93,6 @@ export async function scrapeWithPlaywright(
       screenshot = `data:image/jpeg;base64,${buf.toString('base64')}`;
     }
 
-    await browser.close();
-
     const networkRequests = networkUrls.slice(0, 200).map((url) => ({
       url,
       method: 'GET',
@@ -109,7 +114,8 @@ export async function scrapeWithPlaywright(
       scraperLayer: 2,
       scrapedAt: new Date(),
     };
-  } finally {
+  } catch (err) {
     await browser.close().catch(() => {});
+    throw err;
   }
 }

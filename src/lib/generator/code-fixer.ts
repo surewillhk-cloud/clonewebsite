@@ -97,7 +97,7 @@ export async function fixCodeFromBuildError(
 
 构建错误：
 \`\`\`
-${buildError.slice(-4000)}
+${buildError.slice(0, 4000)}
 \`\`\`
 
 当前项目文件：
@@ -128,23 +128,31 @@ ${filesContext.slice(0, 30000)}
   const filesModified: string[] = [];
 
   for (const fix of fixes) {
-    const normalizedPath = fix.path.replace(/\\/g, '/');
-    const fullPath = path.join(projectPath, normalizedPath);
-    const parentDir = path.dirname(fullPath);
+    const normalizedPath = fix.path.replace(/\\/g, '/').replace(/\.\./g, '');
+    const fullPath = path.resolve(projectPath, normalizedPath);
+
+    if (!fullPath.startsWith(path.resolve(projectPath))) {
+      console.warn('[code-fixer] Path traversal attempt blocked:', normalizedPath);
+      continue;
+    }
 
     if (!validPaths.has(normalizedPath)) {
       const allowed = [...validPaths].some(
         (p) => normalizedPath === p || normalizedPath.startsWith(p + '/')
       );
-      if (!allowed) continue;
+      if (!allowed) {
+        console.warn('[code-fixer] Path not in valid paths:', normalizedPath);
+        continue;
+      }
     }
 
     try {
+      const parentDir = path.dirname(fullPath);
       await fs.mkdir(parentDir, { recursive: true });
       await fs.writeFile(fullPath, fix.content, 'utf-8');
       filesModified.push(normalizedPath);
     } catch (err) {
-      console.warn('[code-fixer] Failed to write', normalizedPath, err);
+      console.error('[code-fixer] Failed to write', normalizedPath, err);
     }
   }
 

@@ -4,7 +4,7 @@
  * 可用: npx supabase gen types typescript --project-id $REF > src/types/database.ts 从实际库生成
  */
 
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | null } | Json[];
 
 export interface Database {
   public: {
