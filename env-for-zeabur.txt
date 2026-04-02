@@ -1,0 +1,65 @@
+# ============================================
+# WebEcho AI - Zeabur 环境变量清单
+# ============================================
+# 复制以下变量名到 Zeabur，填入对应值
+
+# ============ 数据库 (Zeabur PostgreSQL) ============
+DATABASE_URL=postgresql://username:password@host:port/database
+
+# ============ NextAuth.js ============
+NEXTAUTH_URL=https://你的zeabur项目名.zeabur.app
+NEXTAUTH_SECRET=至少32位的随机字符串
+
+# ============ AI APIs ============
+# OpenRouter 统一调用（推荐）
+OPENROUTER_API_KEY=sk-or-xxx
+
+# 如果不用 OpenRouter，可以单独配置：
+# ANTHROPIC_API_KEY=sk-ant-xxx
+# OPENAI_API_KEY=sk-xxx
+# GEMINI_API_KEY=xxx
+# GROQ_API_KEY=xxx
+
+# ============ Firecrawl 爬虫 ============
+FIRECRAWL_API_KEY=fc-xxx
+
+# ============ Stripe 支付 (可选) ============
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
+STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# Stripe Price ID（可选）
+STRIPE_PRICE_STATIC_STARTER=price_xxx
+STRIPE_PRICE_STATIC_GROWTH=price_xxx
+STRIPE_PRICE_DYNAMIC_BASIC=price_xxx
+STRIPE_PRICE_DYNAMIC_PRO=price_xxx
+
+# ============ Cloudflare R2 存储 (可选) ============
+CLOUDFLARE_ACCOUNT_ID=xxx
+CLOUDFLARE_R2_ACCESS_KEY=xxx
+CLOUDFLARE_R2_SECRET_KEY=xxx
+CLOUDFLARE_R2_BUCKET_NAME=clones
+
+# ============ GitHub 部署 (可选) ============
+GITHUB_TOKEN=ghp_xxx
+# GITHUB_ORG_NAME=your-org
+
+# ============ Railway 部署 (可选) ============
+RAILWAY_API_TOKEN=xxx
+RAILWAY_TEAM_ID=xxx
+
+# ============ 平台配置 ============
+PLATFORM_ADMIN_SESSION_SECRET=至少32位的随机字符串
+NEXT_PUBLIC_APP_URL=https://你的zeabur项目名.zeabur.app
+
+# ============ 邮件通知 (可选) ============
+RESEND_API_KEY=re_xxx
+EMAIL_FROM=WebEcho AI <noreply@yourdomain.com>
+
+# ============ 告警 (可选) ============
+ALERT_EMAILS=admin@example.com
+
+# ============ 代理爬虫 (可选) ============
+DECODO_API_KEY=xxx
+DECODO_USERNAME=xxx
+DECODO_PASSWORD=xxx

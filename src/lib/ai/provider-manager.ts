@@ -7,7 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
-export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'groq';
+export type AIProvider = 'anthropic' | 'openai' | 'gemini' | 'groq' | 'openrouter';
 
 export interface AIProviderConfig {
   provider: AIProvider;
@@ -234,6 +234,88 @@ class GroqProvider implements AIProviderClient {
   }
 }
 
+class OpenRouterProvider implements AIProviderClient {
+  provider: AIProvider = 'openrouter';
+  private apiKey: string;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  async chat(messages: AIChatMessage[], options?: AIChatOptions): Promise<string> {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://webecho.ai',
+        'X-Title': 'WebEcho AI',
+      },
+      body: JSON.stringify({
+        model: options?.model || 'anthropic/claude-3.5-sonnet',
+        temperature: options?.temperature || 0.7,
+        max_tokens: options?.maxTokens || 4096,
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content,
+        })),
+      }),
+    });
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  }
+
+  async *chatStream(messages: AIChatMessage[], options?: AIChatOptions): AsyncGenerator<string, void, unknown> {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://webecho.ai',
+        'X-Title': 'WebEcho AI',
+      },
+      body: JSON.stringify({
+        model: options?.model || 'anthropic/claude-3.5-sonnet',
+        temperature: options?.temperature || 0.7,
+        max_tokens: options?.maxTokens || 4096,
+        stream: true,
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content,
+        })),
+      }),
+    });
+
+    const reader = response.body?.getReader();
+    if (!reader) return;
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') return;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) yield content;
+          } catch {}
+        }
+      }
+    }
+  }
+}
+
 const clientCache: Map<string, AIProviderClient> = new Map();
 
 export function getAIClient(provider: AIProvider, apiKey?: string): AIProviderClient {
@@ -258,6 +340,9 @@ export function getAIClient(provider: AIProvider, apiKey?: string): AIProviderCl
     case 'groq':
       client = new GroqProvider(apiKey || process.env.GROQ_API_KEY || '');
       break;
+    case 'openrouter':
+      client = new OpenRouterProvider(apiKey || process.env.OPENROUTER_API_KEY || '');
+      break;
     default:
       throw new Error(`Unknown AI provider: ${provider}`);
   }
@@ -267,11 +352,12 @@ export function getAIClient(provider: AIProvider, apiKey?: string): AIProviderCl
 }
 
 export function getDefaultProvider(): AIProvider {
+  if (process.env.OPENROUTER_API_KEY) return 'openrouter';
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
   if (process.env.OPENAI_API_KEY) return 'openai';
   if (process.env.GEMINI_API_KEY) return 'gemini';
   if (process.env.GROQ_API_KEY) return 'groq';
-  return 'anthropic';
+  return 'openrouter';
 }
 
 export function isProviderConfigured(provider: AIProvider): boolean {
@@ -280,6 +366,7 @@ export function isProviderConfigured(provider: AIProvider): boolean {
     case 'openai': return !!process.env.OPENAI_API_KEY;
     case 'gemini': return !!process.env.GEMINI_API_KEY;
     case 'groq': return !!process.env.GROQ_API_KEY;
+    case 'openrouter': return !!process.env.OPENROUTER_API_KEY;
     default: return false;
   }
 }
@@ -306,5 +393,11 @@ export const AVAILABLE_MODELS: Record<AIProvider, string[]> = {
     'llama-3.3-70b-versatile',
     'llama-3.1-70b-versatile',
     'mixtral-8x7b-32768',
+  ],
+  openrouter: [
+    'anthropic/claude-3.5-sonnet',
+    'openai/gpt-4o',
+    'google/gemini-2.0-flash',
+    'meta-llama/llama-3.3-70b-instruct',
   ],
 };
