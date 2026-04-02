@@ -36,59 +36,86 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-[400px] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8">
-        <h1 className="mb-2 font-heading text-2xl font-extrabold">
-          {t.auth.login}
-        </h1>
-        <p className="mb-8 text-[14px] text-[var(--muted)]">
-          {t.auth.loginDesc}
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div>
-            <label className="mb-1.5 block text-[12px] text-[var(--muted)]">
-              {t.auth.email}
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border2)] bg-[var(--bg)] px-4 py-3 text-[14px] text-[var(--text)] outline-none placeholder:text-[#3A4560] focus:border-[var(--accent)]"
-              placeholder="your@email.com"
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--purple)] mb-6">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
-          <div>
-            <label className="mb-1.5 block text-[12px] text-[var(--muted)]">
-              {t.auth.password}
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border2)] bg-[var(--bg)] px-4 py-3 text-[14px] text-[var(--text)] outline-none placeholder:text-[#3A4560] focus:border-[var(--accent)]"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          {error && (
-            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-[13px] text-red-400">
-              {error}
+          <h1 className="font-heading text-3xl font-extrabold text-[var(--text)] mb-2">
+            欢迎回来
+          </h1>
+          <p className="text-[var(--muted)]">
+            输入您的账号信息登录
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-xl shadow-black/5">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-[13px] font-medium text-[var(--text)] mb-2">
+                邮箱地址
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-medium text-[var(--text)] mb-2">
+                密码
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3">
+                <p className="text-[13px] text-red-400">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-gradient-to-r from-[var(--accent)] to-[#6B91FF] py-3.5 text-[14px] font-semibold text-white transition-all hover:shadow-lg hover:shadow-[var(--accent)]/25 disabled:opacity-50"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  登录中...
+                </span>
+              ) : '登录'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-[13px] text-[var(--muted)]">
+              还没有账号？{' '}
+              <Link href="/register" className="text-[var(--accent)] font-medium hover:underline">
+                立即注册
+              </Link>
             </p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-[var(--accent)] py-3.5 text-[14px] font-medium text-white transition-colors hover:bg-[#6B91FF] disabled:opacity-50"
-          >
-            {loading ? t.auth.loggingIn : t.auth.loginBtn}
-          </button>
-        </form>
-        <p className="mt-6 text-center text-[13px] text-[var(--muted)]">
-          {t.auth.noAccount}{' '}
-          <Link href="/register" className="text-[var(--accent)] hover:underline">
-            {t.auth.register}
-          </Link>
+          </div>
+        </div>
+
+        <p className="text-center text-[12px] text-[var(--muted)] mt-8">
+          CH007 — AI 网站克隆平台
         </p>
       </div>
     </div>

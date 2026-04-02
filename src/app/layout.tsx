@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { LocaleProvider } from "@/contexts/LocaleContext";
+import { Providers } from "@/components/Providers";
 import { getLocaleFromRequest } from "@/lib/get-locale";
 import { syne, dmSans, notoSansSC } from "@/lib/fonts";
 
@@ -85,9 +85,9 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <LocaleProvider initialLocale={locale}>
+        <Providers>
           {children}
-        </LocaleProvider>
+        </Providers>
       </body>
     </html>
   );

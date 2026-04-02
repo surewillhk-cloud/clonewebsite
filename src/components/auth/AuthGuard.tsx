@@ -1,61 +1,58 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { signIn } from 'next-auth/react';
 
-function RegisterForm() {
+interface AuthGuardProps {
+  children: React.ReactNode;
+}
+
+export function AuthGuard({ children }: AuthGuardProps) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [showLogin, setShowLogin] = useState(false);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    if (!session) {
+      setShowLogin(true);
+    } else {
+      setShowLogin(false);
+    }
+  }, [session, status]);
+
+  if (showLogin) {
+    return <LoginPrompt onLogin={() => window.location.reload()} />;
+  }
+
+  return <>{children}</>;
+}
+
+function LoginPrompt({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [refCode, setRefCode] = useState<string | null>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const ref = searchParams.get('ref');
-    if (ref?.trim()) setRefCode(ref.trim());
-  }, [searchParams]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Registration failed');
-        return;
-      }
-      const signInResult = await signIn('credentials', {
+      const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
-      if (signInResult?.error) {
-        setError(signInResult.error);
+      if (result?.error) {
+        setError(result.error);
         return;
       }
-      if (refCode) {
-        try {
-          await fetch('/api/referral/bind', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ref: refCode }),
-          });
-        } catch {
-          sessionStorage.setItem('ch007-ref', refCode);
-        }
-      }
-      router.push('/dashboard');
-      router.refresh();
+      onLogin();
     } finally {
       setLoading(false);
     }
@@ -64,25 +61,25 @@ function RegisterForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--purple)] mb-6">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--purple)] mb-4">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="font-heading text-3xl font-extrabold text-[var(--text)] mb-2">
-            创建账号
+          <h1 className="font-heading text-2xl font-extrabold text-[var(--text)] mb-2">
+            登录 CH007
           </h1>
           <p className="text-[var(--muted)]">
-            开始使用 AI 克隆网站
+            输入您的账号信息继续
           </p>
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-xl shadow-black/5">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-[13px] font-medium text-[var(--text)] mb-2">
-                邮箱地址
+                邮箱
               </label>
               <input
                 type="email"
@@ -102,8 +99,7 @@ function RegisterForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
-                placeholder="至少6位字符"
-                minLength={6}
+                placeholder="••••••••"
                 required
               />
             </div>
@@ -125,48 +121,26 @@ function RegisterForm() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  注册中...
+                  登录中...
                 </span>
-              ) : '创建账号'}
+              ) : '登录'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-[13px] text-[var(--muted)]">
-              已有账号？{' '}
-              <Link href="/login" className="text-[var(--accent)] font-medium hover:underline">
-                立即登录
-              </Link>
+              还没有账号？{' '}
+              <a href="/register" className="text-[var(--accent)] font-medium hover:underline">
+                立即注册
+              </a>
             </p>
           </div>
         </div>
 
-        <p className="text-center text-[12px] text-[var(--muted)] mt-8">
-          注册即表示您同意我们的服务条款
+        <p className="text-center text-[12px] text-[var(--muted)] mt-6">
+          CH007 — AI 网站克隆平台
         </p>
       </div>
     </div>
-  );
-}
-
-export default function RegisterPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] px-4">
-        <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 animate-pulse">
-            <div className="h-8 bg-[var(--border2)] rounded w-32 mb-4" />
-            <div className="h-4 bg-[var(--border2)] rounded w-48 mb-8" />
-            <div className="space-y-4">
-              <div className="h-12 bg-[var(--border2)] rounded-xl" />
-              <div className="h-12 bg-[var(--border2)] rounded-xl" />
-              <div className="h-12 bg-[var(--border2)] rounded-xl" />
-            </div>
-          </div>
-        </div>
-      </div>
-    }>
-      <RegisterForm />
-    </Suspense>
   );
 }
