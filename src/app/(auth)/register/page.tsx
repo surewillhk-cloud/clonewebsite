@@ -78,35 +78,38 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4">
+      {/* Background effects */}
       <div className="absolute inset-0 bg-[var(--bg)]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-[var(--accent)]/10 via-[var(--purple)]/5 to-transparent rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-[var(--accent)]/10 via-[var(--purple)]/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.03] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,black_0%,transparent_70%)] [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:60px_60px]" />
       </div>
 
-      <div className="relative w-full max-w-md px-4">
+      <div className="relative w-full max-w-md animate-slide-up">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--purple)] flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <Link href="/" className="inline-flex items-center gap-2 mb-8 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-hover)] flex items-center justify-center group-hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] transition-shadow duration-300">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="font-heading text-xl font-bold text-[var(--text)]">CH007</span>
+            <span className="font-heading text-xl font-extrabold text-[var(--text)]">Web<span className="text-[var(--accent)]">Echo</span></span>
           </Link>
           <h1 className="font-heading text-3xl font-extrabold text-[var(--text)] mb-2">
             {t.auth.registerTitle}
           </h1>
-          <p className="text-[var(--muted)]">
-            {t.auth.registerSubtitle}
-          </p>
+          <p className="text-[var(--text-secondary)]">{t.auth.registerSubtitle}</p>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-xl p-8 shadow-2xl shadow-black/10">
+        {/* Card */}
+        <div className="feature-card !p-8">
+          {/* Google Sign Up */}
           <button
             onClick={handleGoogleSignUp}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 rounded-xl border border-[var(--border2)] bg-[var(--surface)] hover:bg-[var(--bg)]/80 py-3.5 text-[14px] font-medium text-[var(--text)] transition-all hover:border-[var(--accent)]/50 disabled:opacity-50 mb-6"
+            className="w-full flex items-center justify-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)] py-3.5 text-[14px] font-medium text-[var(--text)] transition-all disabled:opacity-50 mb-6"
           >
             {googleLoading ? (
               <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -124,15 +127,17 @@ function RegisterForm() {
             {t.auth.signUpWithGoogle}
           </button>
 
+          {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[var(--border)]"></div>
+              <div className="w-full border-t border-[var(--border-faint)]"></div>
             </div>
             <div className="relative flex justify-center text-[12px]">
               <span className="px-4 bg-[var(--surface)] text-[var(--muted)]">{t.auth.orContinue || 'or'}</span>
             </div>
           </div>
 
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-[13px] font-medium text-[var(--text)] mb-2">
@@ -142,7 +147,7 @@ function RegisterForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)]/80 px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted-dark)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
                 placeholder={t.auth.emailPlaceholder}
                 required
               />
@@ -155,7 +160,7 @@ function RegisterForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)]/80 px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted-dark)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
                 placeholder={t.auth.passwordPlaceholder}
                 minLength={6}
                 required
@@ -169,7 +174,7 @@ function RegisterForm() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border2)] bg-[var(--bg)]/80 px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3.5 text-[14px] text-[var(--text)] placeholder:text-[var(--muted-dark)] transition-all outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
                 placeholder={t.auth.passwordPlaceholder}
                 minLength={6}
                 required
@@ -177,24 +182,24 @@ function RegisterForm() {
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3">
-                <p className="text-[13px] text-red-400">{error}</p>
+              <div className="rounded-xl bg-[var(--red-soft)] border border-[var(--red)]/20 px-4 py-3">
+                <p className="text-[13px] text-[var(--red)]">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-[var(--accent)] to-[#6B91FF] py-3.5 text-[14px] font-semibold text-white transition-all hover:shadow-lg hover:shadow-[var(--accent)]/25 disabled:opacity-50"
+              className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
+                <>
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                   {t.auth.registering}
-                </span>
+                </>
               ) : t.auth.registerBtn}
             </button>
           </form>
