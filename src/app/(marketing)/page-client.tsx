@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /* ============================================
    Shared types
@@ -254,7 +255,8 @@ function SectionHeader({ num, tag, title, desc }: { num: string; tag: string; ti
 /* ============================================
    MAIN LANDING PAGE
    ============================================ */
-export default function LandingPageClient({ t, pricing }: { t: Translations; pricing: { onboardingDollar: string } }) {
+export default function LandingPageClient({ pricing }: { pricing: { onboardingDollar: string } }) {
+  const t = useTranslation();
   const heroRef = useRef<HTMLDivElement>(null);
   const [heroInView, setHeroInView] = useState(false);
   const terminalRef = useInView(0.2);
