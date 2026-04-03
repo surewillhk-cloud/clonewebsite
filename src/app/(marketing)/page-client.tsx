@@ -5,56 +5,11 @@ import Link from 'next/link';
 import { useTranslation } from '@/hooks/useTranslation';
 
 /* ============================================
-   Shared types
-   ============================================ */
-interface TranslationHome {
-  badge: string;
-  heroTitle: string;
-  heroTitleAccent: string;
-  heroDesc: string;
-  urlPlaceholder: string;
-  startClone: string;
-  firstTimeHint: (d: string) => string;
-  stats: { avgTime: string; fidelity: string; services: string; standardCode: string };
-  fourSteps: string;
-  workflowDesc: string;
-  steps: { input: { title: string; desc: string }; analyze: { title: string; desc: string }; generate: { title: string; desc: string }; deploy: { title: string; desc: string } };
-  notJustScreenshot: string;
-  capabilitiesDesc: string;
-  features: { crawler: { title: string; desc: string; tag: string }; browser: { title: string; desc: string; tag: string }; thirdParty: { title: string; desc: string; tag: string }; test: { title: string; desc: string; tag: string }; hosting: { title: string; desc: string; tag: string }; app: { title: string; desc: string; tag: string } };
-  payAsYouGo: string;
-  pricingSectionDesc: string;
-  perTask: string;
-  from: string;
-  dynamicPricing: (o: string) => string;
-  ctaTry: (d: string) => string;
-  hostingService: string;
-  platformHosting: string;
-  perMonth: string;
-  hostingDesc: (s: string, g: string, b: string, p: string) => string;
-  hostingFeatures: string[];
-  ctaTitle: string;
-  ctaDesc: string;
-  viewPricing: string;
-}
-
-interface TranslationCommon {
-  product: string; pricing: string; docs: string; blog: string; login: string; cta: string;
-}
-
-interface Translations {
-  common: TranslationCommon;
-  home: TranslationHome;
-  footer: { privacy: string; terms: string; docs: string; contact: string };
-}
-
-/* ============================================
-   Scroll-triggered animation hook
+   Scroll animation hook
    ============================================ */
 function useInView(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
-
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -65,19 +20,18 @@ function useInView(threshold = 0.1) {
     obs.observe(el);
     return () => obs.disconnect();
   }, [threshold]);
-
   return { ref, inView };
 }
 
 /* ============================================
-   Animated section wrapper
+   Animated section
    ============================================ */
-function AnimatedSection({ children, className = '', delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+function FadeIn({ children, className = '', delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const { ref, inView } = useInView(0.05);
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
+      className={`transition-all duration-700 ease-out ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
@@ -86,7 +40,7 @@ function AnimatedSection({ children, className = '', delay = 0 }: { children: Re
 }
 
 /* ============================================
-   Mouse-tracking glow card
+   Glow card
    ============================================ */
 function GlowCard({ children, className = '' }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -94,46 +48,34 @@ function GlowCard({ children, className = '' }: { children: ReactNode; className
   return (
     <div
       ref={ref}
-      onMouseMove={(e) => {
-        if (!ref.current) return;
-        const r = ref.current.getBoundingClientRect();
-        setPos({ x: e.clientX - r.left, y: e.clientY - r.top });
-      }}
+      onMouseMove={(e) => { if (!ref.current) return; const r = ref.current.getBoundingClientRect(); setPos({ x: e.clientX - r.left, y: e.clientY - r.top }); }}
       className={`feature-card group relative overflow-hidden ${className}`}
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{ background: `radial-gradient(300px circle at ${pos.x}px ${pos.y}px, rgba(249,115,22,0.06), transparent 60%)` }}
-      />
+      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: `radial-gradient(300px circle at ${pos.x}px ${pos.y}px, rgba(249,115,22,0.06), transparent 60%)` }} />
       {children}
     </div>
   );
 }
 
 /* ============================================
-   Animated number counter
+   Animated counter
    ============================================ */
-function AnimatedNumber({ target, suffix = '', inView }: { target: number; suffix?: string; inView: boolean }) {
+function Counter({ target, suffix = '', inView }: { target: number; suffix?: string; inView: boolean }) {
   const [value, setValue] = useState(0);
   useEffect(() => {
     if (!inView) return;
-    const steps = 40;
-    const inc = target / steps;
-    let cur = 0;
-    const t = setInterval(() => {
-      cur += inc;
-      if (cur >= target) { setValue(target); clearInterval(t); }
-      else setValue(Math.floor(cur));
-    }, 1500 / steps);
+    const steps = 40; const inc = target / steps; let cur = 0;
+    const t = setInterval(() => { cur += inc; if (cur >= target) { setValue(target); clearInterval(t); } else setValue(Math.floor(cur)); }, 1500 / steps);
     return () => clearInterval(t);
   }, [inView, target]);
   return <>{value}{suffix}</>;
 }
 
 /* ============================================
-   Terminal typing with syntax highlight
+   Terminal typing
    ============================================ */
-function TerminalTyping({ lines, inView, speed = 30 }: { lines: string[]; inView: boolean; speed?: number }) {
+function TypingTerminal({ lines, inView, speed = 30 }: { lines: string[]; inView: boolean; speed?: number }) {
   const [displayed, setDisplayed] = useState<string[]>([]);
   const [lineIdx, setLineIdx] = useState(0);
   const [charIdx, setCharIdx] = useState(0);
@@ -160,21 +102,17 @@ function TerminalTyping({ lines, inView, speed = 30 }: { lines: string[]; inView
       {displayed.map((line, i) => (
         <div key={i} className="min-h-[1.8em]">
           <span className="text-[var(--muted-dark)] select-none mr-3">{String(i + 1).padStart(2, ' ')}</span>
-          {highlightCode(line)}
+          {highlight(line)}
         </div>
       ))}
-      {!done && inView && (
-        <span className="inline-block w-2 h-4 bg-[var(--accent)] animate-pulse ml-1 align-middle" />
-      )}
+      {!done && inView && <span className="inline-block w-2 h-4 bg-[var(--accent)] animate-pulse ml-1 align-middle" />}
     </div>
   );
 }
 
-function highlightCode(code: string): ReactNode {
+function highlight(code: string): ReactNode {
   if (!code) return null;
-  const tokens: ReactNode[] = [];
-  let rem = code;
-  let k = 0;
+  const tokens: ReactNode[] = []; let rem = code; let k = 0;
   const pats = [
     { re: /^(\/\/.*)/, cls: 'text-[var(--muted-dark)]' },
     { re: /^(const|await|from|import|true|false|print)/, cls: 'text-[var(--purple)]' },
@@ -198,14 +136,12 @@ function highlightCode(code: string): ReactNode {
 }
 
 /* ============================================
-   Code tabs with typing
+   Code tabs
    ============================================ */
 function CodeTabs({ tabs, inView }: { tabs: { label: string; code: string[] }[]; inView: boolean }) {
   const [active, setActive] = useState(0);
   const [key, setKey] = useState(0);
-
   const switchTab = (i: number) => { setActive(i); setKey((k) => k + 1); };
-
   return (
     <div className="feature-card !p-0 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-faint)] bg-[var(--surface-raised)]">
@@ -222,33 +158,36 @@ function CodeTabs({ tabs, inView }: { tabs: { label: string; code: string[] }[];
         </div>
       </div>
       <div className="p-6 bg-[var(--bg)] min-h-[220px]" key={key}>
-        <TerminalTyping lines={tabs[active].code} inView={inView} speed={25} />
+        <TypingTerminal lines={tabs[active].code} inView={inView} speed={25} />
       </div>
     </div>
   );
 }
 
 /* ============================================
-   Section wrapper with consistent layout
+   Section wrapper — EVERY section uses this
    ============================================ */
-function Section({ children, className = '' }: { children: ReactNode; className?: string }) {
+function Section({ children }: { children: ReactNode }) {
   return (
-    <section className={`border-t border-[var(--border-faint)] py-24 ${className}`}>
-      <div className="mx-auto max-w-[1200px] px-6 lg:px-12">{children}</div>
+    <section className="border-t border-[var(--border-faint)]">
+      <div className="mx-auto max-w-[1200px] px-6 lg:px-12 py-24">{children}</div>
     </section>
   );
 }
 
-function SectionHeader({ num, tag, title, desc }: { num: string; tag: string; title: string; desc: string }) {
+/* ============================================
+   Section header — consistent badge + title + desc
+   ============================================ */
+function SectionHead({ num, tag, title, desc }: { num: string; tag: string; title: string; desc: string }) {
   return (
-    <AnimatedSection>
+    <FadeIn>
       <div className="flex items-center gap-3 mb-4">
         <span className="text-[11px] font-semibold text-[var(--muted)]">[{num}]</span>
         <span className="text-[11px] font-semibold uppercase tracking-[2px] text-[var(--accent)]">{tag}</span>
       </div>
       <h2 className="font-heading text-[36px] lg:text-[48px] font-extrabold leading-[1.1] tracking-[-1.5px] mb-4">{title}</h2>
       <p className="text-[16px] leading-[1.7] text-[var(--muted)] max-w-[480px]">{desc}</p>
-    </AnimatedSection>
+    </FadeIn>
   );
 }
 
@@ -314,7 +253,7 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
           <p className="mx-auto mb-10 max-w-[560px] text-lg sm:text-xl font-light leading-[1.7] text-[var(--text-secondary)]">{t.home.heroDesc}</p>
 
           <div className="flex justify-center">
-            <HeroInput onboardingDollar={pricing.onboardingDollar} t={t} />
+            <HeroInput onboardingDollar={pricing.onboardingDollar} />
           </div>
 
           <div className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-[var(--border-faint)] pt-12">
@@ -322,10 +261,10 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
               { num: 10, suffix: ' min', label: t.home.stats.avgTime },
               { num: 87, suffix: '%', label: t.home.stats.fidelity },
               { num: 50, suffix: '+', label: t.home.stats.services },
-            ].map((s, i) => (
+            ].map((s) => (
               <div key={s.label} className="text-center group">
                 <div className="font-heading text-3xl font-extrabold stat-number transition-transform duration-300 group-hover:scale-105">
-                  <AnimatedNumber target={s.num} suffix={s.suffix} inView={heroInView} />
+                  <Counter target={s.num} suffix={s.suffix} inView={heroInView} />
                 </div>
                 <div className="mt-1 text-[13px] text-[var(--muted)]">{s.label}</div>
               </div>
@@ -359,12 +298,13 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
 
       {/* ===== 01 WORKFLOW ===== */}
       <Section>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+          {/* Left: header + steps */}
           <div>
-            <SectionHeader num="01 / 03" tag="Main Features" title={t.home.fourSteps} desc={t.home.workflowDesc} />
+            <SectionHead num="01 / 03" tag="Main Features" title={t.home.fourSteps} desc={t.home.workflowDesc} />
             <div className="mt-10 flex flex-col gap-3">
               {workflowItems.map((item, i) => (
-                <AnimatedSection key={i} delay={200 + i * 100}>
+                <FadeIn key={i} delay={200 + i * 100}>
                   <GlowCard className="!p-5 cursor-default">
                     <div className="flex items-start gap-4">
                       <div className="text-2xl shrink-0 group-hover:scale-110 transition-transform duration-300">{item.icon}</div>
@@ -374,86 +314,81 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
                       </div>
                     </div>
                   </GlowCard>
-                </AnimatedSection>
+                </FadeIn>
               ))}
             </div>
           </div>
-          <div className="lg:pt-16">
-            <AnimatedSection delay={300}>
-              <CodeTabs tabs={codeTabs} inView={terminalRef.inView} />
-            </AnimatedSection>
-            <div ref={terminalRef.ref} className="h-1" />
+          {/* Right: code terminal */}
+          <div>
+            <div className="lg:sticky lg:top-24">
+              <FadeIn delay={300}>
+                <CodeTabs tabs={codeTabs} inView={terminalRef.inView} />
+              </FadeIn>
+              <div ref={terminalRef.ref} className="h-1" />
+            </div>
           </div>
         </div>
       </Section>
 
       {/* ===== 02 CAPABILITIES ===== */}
       <Section>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-          <div>
-            <SectionHeader num="02 / 03" tag="Developer First" title={t.home.notJustScreenshot} desc={t.home.capabilitiesDesc} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {featureItems.map((feat, i) => (
-              <AnimatedSection key={feat.label} delay={100 + i * 80}>
-                <GlowCard className="cursor-default">
-                  <div className="mb-3 text-xl group-hover:scale-110 transition-transform duration-300">{feat.icon}</div>
-                  <div className="mb-1.5 font-heading text-[14px] font-bold text-[var(--text)]">{feat.label}</div>
-                  <div className="mb-3 text-[12px] leading-[1.6] text-[var(--muted)]">{feat.desc}</div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white transition-all duration-300">
-                    {feat.tag}
-                    <svg className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </span>
-                </GlowCard>
-              </AnimatedSection>
-            ))}
-          </div>
+        <SectionHead num="02 / 03" tag="Developer First" title={t.home.notJustScreenshot} desc={t.home.capabilitiesDesc} />
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {featureItems.map((feat, i) => (
+            <FadeIn key={feat.label} delay={100 + i * 80}>
+              <GlowCard className="cursor-default h-full">
+                <div className="mb-3 text-xl group-hover:scale-110 transition-transform duration-300">{feat.icon}</div>
+                <div className="mb-1.5 font-heading text-[14px] font-bold text-[var(--text)]">{feat.label}</div>
+                <div className="mb-3 text-[12px] leading-[1.6] text-[var(--muted)]">{feat.desc}</div>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white transition-all duration-300">
+                  {feat.tag}
+                  <svg className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </GlowCard>
+            </FadeIn>
+          ))}
         </div>
       </Section>
 
       {/* ===== 03 PRICING ===== */}
       <Section>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-          <div>
-            <SectionHeader num="03 / 03" tag="Zero configuration" title={t.home.payAsYouGo} desc={t.home.pricingSectionDesc} />
-            <AnimatedSection delay={200}>
-              <GlowCard className="mt-6">
-                <div className="mb-4 text-[11px] font-semibold uppercase tracking-[1.5px] text-[var(--muted)]">{t.home.perTask}</div>
-                <div className="mb-1 font-heading text-4xl font-extrabold text-[var(--text)]">
-                  ${pricing.onboardingDollar}<sub className="align-middle text-base font-normal text-[var(--muted)]"> {t.home.from}</sub>
-                </div>
-                <div className="mb-6 text-[13px] text-[var(--muted)]">{t.home.dynamicPricing(pricing.onboardingDollar)}</div>
-                <Link href="/clone/new" className="btn-primary inline-block text-center">{t.home.ctaTry(pricing.onboardingDollar)}</Link>
-              </GlowCard>
-            </AnimatedSection>
-          </div>
-          <div className="lg:pt-16">
-            <AnimatedSection delay={300}>
-              <GlowCard className="relative border-[var(--accent-border)] bg-[var(--accent-soft)]">
-                <div className="absolute right-5 top-5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] px-3 py-1 text-[11px] font-semibold text-white shadow-sm">{t.home.hostingService}</div>
-                <div className="mb-4 text-[11px] font-semibold uppercase tracking-[1.5px] text-[var(--muted)]">{t.home.platformHosting}</div>
-                <div className="mb-1 font-heading text-4xl font-extrabold text-[var(--text)]">$30<sub className="align-middle text-base font-normal text-[var(--muted)]">{t.home.perMonth}</sub></div>
-                <div className="mb-6 text-[13px] text-[var(--muted)]">{t.home.hostingDesc('30', '50', '500', '1000')}</div>
-                <ul className="flex flex-col gap-3">
-                  {t.home.hostingFeatures.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-[13px] text-[var(--muted)]">
-                      <svg className="w-4 h-4 text-[var(--accent)] mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </GlowCard>
-            </AnimatedSection>
-          </div>
+        <SectionHead num="03 / 03" tag="Zero configuration" title={t.home.payAsYouGo} desc={t.home.pricingSectionDesc} />
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FadeIn delay={100}>
+            <GlowCard>
+              <div className="mb-4 text-[11px] font-semibold uppercase tracking-[1.5px] text-[var(--muted)]">{t.home.perTask}</div>
+              <div className="mb-1 font-heading text-4xl font-extrabold text-[var(--text)]">
+                ${pricing.onboardingDollar}<sub className="align-middle text-base font-normal text-[var(--muted)]"> {t.home.from}</sub>
+              </div>
+              <div className="mb-6 text-[13px] text-[var(--muted)]">{t.home.dynamicPricing(pricing.onboardingDollar)}</div>
+              <Link href="/clone/new" className="btn-primary inline-block text-center">{t.home.ctaTry(pricing.onboardingDollar)}</Link>
+            </GlowCard>
+          </FadeIn>
+          <FadeIn delay={200}>
+            <GlowCard className="relative border-[var(--accent-border)] bg-[var(--accent-soft)]">
+              <div className="absolute right-5 top-5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-hover)] px-3 py-1 text-[11px] font-semibold text-white shadow-sm">{t.home.hostingService}</div>
+              <div className="mb-4 text-[11px] font-semibold uppercase tracking-[1.5px] text-[var(--muted)]">{t.home.platformHosting}</div>
+              <div className="mb-1 font-heading text-4xl font-extrabold text-[var(--text)]">$30<sub className="align-middle text-base font-normal text-[var(--muted)]">{t.home.perMonth}</sub></div>
+              <div className="mb-6 text-[13px] text-[var(--muted)]">{t.home.hostingDesc('30', '50', '500', '1000')}</div>
+              <ul className="flex flex-col gap-3">
+                {t.home.hostingFeatures.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-[13px] text-[var(--muted)]">
+                    <svg className="w-4 h-4 text-[var(--accent)] mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </GlowCard>
+          </FadeIn>
         </div>
       </Section>
 
       {/* ===== OPEN SOURCE ===== */}
       <Section>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <AnimatedSection>
+          <FadeIn>
             <div className="section-label mb-4">Open Source</div>
             <h2 className="font-heading text-[36px] lg:text-[44px] font-extrabold leading-[1.1] tracking-[-1.5px] mb-6">
               Code you can <em className="not-italic bg-gradient-to-r from-[var(--accent)] to-[var(--purple)] bg-clip-text text-transparent">trust</em>
@@ -466,7 +401,7 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
               </a>
               <Link href="/docs" className="btn-secondary">Read docs</Link>
             </div>
-          </AnimatedSection>
+          </FadeIn>
           <div className="grid grid-cols-2 gap-4">
             {[
               { value: '10 min', color: 'stat-number', label: 'Avg delivery time' },
@@ -474,12 +409,12 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
               { value: '50+', color: 'text-[var(--accent2)]', label: 'Services detected' },
               { value: '3x', color: 'text-[var(--purple)]', label: 'Auto-retry on fail' },
             ].map((s, i) => (
-              <AnimatedSection key={i} delay={i * 100}>
+              <FadeIn key={i} delay={i * 100}>
                 <GlowCard className="!p-5 text-center">
                   <div className={`text-3xl font-heading font-extrabold mb-1 ${s.color}`}>{s.value}</div>
                   <div className="text-[12px] text-[var(--muted)]">{s.label}</div>
                 </GlowCard>
-              </AnimatedSection>
+              </FadeIn>
             ))}
           </div>
         </div>
@@ -487,7 +422,7 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
 
       {/* ===== CTA ===== */}
       <section className="mx-6 lg:mx-12 mb-24">
-        <AnimatedSection>
+        <FadeIn>
           <div className="relative overflow-hidden rounded-[20px] border border-[var(--accent-border)] bg-[var(--surface)] p-12 lg:p-20 text-center group">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[var(--accent-soft)] to-[var(--purple-soft)] opacity-50 group-hover:opacity-80 transition-opacity duration-500" />
             <div className="pointer-events-none absolute top-0 right-0 h-[200px] w-[200px] rounded-full bg-[var(--accent)] opacity-[0.06] blur-[80px] group-hover:opacity-[0.12] transition-opacity duration-500" />
@@ -500,7 +435,7 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
               </div>
             </div>
           </div>
-        </AnimatedSection>
+        </FadeIn>
       </section>
     </>
   );
@@ -509,7 +444,8 @@ export default function LandingPageClient({ pricing }: { pricing: { onboardingDo
 /* ============================================
    Hero URL Input
    ============================================ */
-function HeroInput({ onboardingDollar, t }: { onboardingDollar: string; t: Translations }) {
+function HeroInput({ onboardingDollar }: { onboardingDollar: string }) {
+  const t = useTranslation();
   const [url, setUrl] = useState('');
   const [focused, setFocused] = useState(false);
   const trimmed = url.trim();
