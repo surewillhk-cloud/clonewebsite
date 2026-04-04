@@ -316,13 +316,28 @@ class OpenRouterProvider implements AIProviderClient {
   }
 }
 
-const clientCache: Map<string, AIProviderClient> = new Map();
+const clientCache = new Map<string, { client: AIProviderClient; ts: number }>();
+const CLIENT_CACHE_TTL_MS = 60 * 60 * 1000;
+const CLIENT_CACHE_MAX_SIZE = 20;
 
 export function getAIClient(provider: AIProvider, apiKey?: string): AIProviderClient {
   const cacheKey = `${provider}-${apiKey || 'default'}`;
+  const now = Date.now();
 
-  if (clientCache.has(cacheKey)) {
-    return clientCache.get(cacheKey)!;
+  const cached = clientCache.get(cacheKey);
+  if (cached && now - cached.ts < CLIENT_CACHE_TTL_MS) {
+    return cached.client;
+  }
+
+  // Clean expired entries
+  for (const [key, entry] of clientCache.entries()) {
+    if (now - entry.ts > CLIENT_CACHE_TTL_MS) clientCache.delete(key);
+  }
+
+  // Cap size
+  if (clientCache.size >= CLIENT_CACHE_MAX_SIZE) {
+    const oldestKey = clientCache.keys().next().value;
+    if (oldestKey) clientCache.delete(oldestKey);
   }
 
   let client: AIProviderClient;
@@ -347,7 +362,7 @@ export function getAIClient(provider: AIProvider, apiKey?: string): AIProviderCl
       throw new Error(`Unknown AI provider: ${provider}`);
   }
 
-  clientCache.set(cacheKey, client);
+  clientCache.set(cacheKey, { client, ts: now });
   return client;
 }
 

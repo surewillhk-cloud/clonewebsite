@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
         [userId, `${startStr}T00:00:00Z`]
       ),
       query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM hosted_sites',
-        []
+        'SELECT COUNT(*) as count FROM hosted_sites WHERE user_id = $1',
+        [userId]
       ),
     ]);
 

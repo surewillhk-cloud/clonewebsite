@@ -180,3 +180,8 @@ export async function createTaskInStore(
   memoryStore.set(taskId, initialStatus);
   memoryOwnerMap.set(taskId, task.userId);
 }
+
+export async function getTaskOwner(taskId: string): Promise<string | null> {
+  const withOwner = await getTaskStatusWithOwner(taskId);
+  return withOwner?.userId ?? null;
+}

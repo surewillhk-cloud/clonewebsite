@@ -94,8 +94,12 @@ export async function startPreviewServer(taskId: string): Promise<string> {
 
   const port = nextPort();
 
-  // 先执行 npm install
+  // 先执行 npm install (5 分钟超时)
   await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      install.kill('SIGKILL');
+      reject(new Error('npm install timed out after 5 minutes'));
+    }, 5 * 60 * 1000);
     const install = spawn('npm', ['install'], {
       cwd: workDir,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -103,10 +107,14 @@ export async function startPreviewServer(taskId: string): Promise<string> {
     let err = '';
     install.stderr?.on('data', (chunk: Buffer) => { err += chunk.toString(); });
     install.on('close', (code) => {
+      clearTimeout(timeout);
       if (code === 0) resolve();
       else reject(new Error(`npm install failed: ${code}\n${err.slice(-500)}`));
     });
-    install.on('error', reject);
+    install.on('error', (e) => {
+      clearTimeout(timeout);
+      reject(e);
+    });
   });
 
   return new Promise((resolve, reject) => {

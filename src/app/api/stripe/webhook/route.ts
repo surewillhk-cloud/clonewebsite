@@ -16,8 +16,9 @@ import { query, isDbConfigured } from '@/lib/db';
 import { sendPaymentFailed, sendAdminAlert, isEmailConfigured } from '@/lib/email/send';
 import { getAdminEmails } from '@/lib/monitoring/get-admin-emails';
 
-const processedEvents = new Set<string>();
+const processedEvents = new Map<string, number>();
 const MAX_PROCESSED_SIZE = 10000;
+const EVENT_TTL_MS = 24 * 60 * 60 * 1000;
 
 async function notifyWebhookFailure(subject: string, error: string, details?: Record<string, string>) {
   const emails = await getAdminEmails();
@@ -61,6 +62,12 @@ export async function POST(req: NextRequest) {
   try {
     if (processedEvents.has(event.id)) {
       return NextResponse.json({ received: true, status: 'already_processed' });
+    }
+
+    // Clean expired entries
+    const now = Date.now();
+    for (const [id, ts] of processedEvents.entries()) {
+      if (now - ts > EVENT_TTL_MS) processedEvents.delete(id);
     }
 
     switch (event.type) {
@@ -170,9 +177,12 @@ export async function POST(req: NextRequest) {
   }
 
     if (processedEvents.size >= MAX_PROCESSED_SIZE) {
-      processedEvents.clear();
+      const now = Date.now();
+      for (const [id, ts] of processedEvents.entries()) {
+        if (now - ts > EVENT_TTL_MS) processedEvents.delete(id);
+      }
     }
-    processedEvents.add(event.id);
+    processedEvents.set(event.id, Date.now());
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[stripe/webhook] Processing error:', err);

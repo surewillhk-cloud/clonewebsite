@@ -81,8 +81,8 @@ export async function setAdminSession(admin: PlatformAdmin): Promise<void> {
   const token = `session.${payloadB64}.${signature}`;
   cookieStore.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: true,
+    sameSite: 'strict',
     maxAge: SESSION_MAX_AGE,
     path: '/',
   });

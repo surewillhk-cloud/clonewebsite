@@ -4,14 +4,16 @@
 
 import { query, isDbConfigured } from '@/lib/db';
 import { REFERRAL_REWARD_CREDITS } from '@/constants/plans';
+import { randomBytes } from 'crypto';
 
 const REFERRAL_CODE_LENGTH = 8;
 
 function generateCode(): string {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = randomBytes(REFERRAL_CODE_LENGTH);
   let s = '';
   for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) {
-    s += chars[Math.floor(Math.random() * chars.length)];
+    s += chars[bytes[i] % chars.length];
   }
   return s;
 }

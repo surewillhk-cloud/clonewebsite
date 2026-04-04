@@ -19,8 +19,27 @@ const schema = z.object({
   auth_token: z.string().optional(),
 });
 
-// 防止同一 session 重复创建任务
-const sessionToTaskId = new Map<string, string>();
+// 防止同一 session 重复创建任务 (30 分钟 TTL)
+const sessionToTaskId = new Map<string, { taskId: string; ts: number }>();
+const SESSION_TTL_MS = 30 * 60 * 1000;
+
+function getSessionTask(sessionId: string): string | null {
+  const entry = sessionToTaskId.get(sessionId);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > SESSION_TTL_MS) {
+    sessionToTaskId.delete(sessionId);
+    return null;
+  }
+  return entry.taskId;
+}
+
+function setSessionTask(sessionId: string, taskId: string) {
+  const now = Date.now();
+  for (const [id, e] of sessionToTaskId.entries()) {
+    if (now - e.ts > SESSION_TTL_MS) sessionToTaskId.delete(id);
+  }
+  sessionToTaskId.set(sessionId, { taskId, ts: now });
+}
 
 export async function POST(req: NextRequest) {
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
@@ -43,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     const { session_id, auth_token } = parsed.data;
 
-    const existingTaskId = sessionToTaskId.get(session_id);
+    const existingTaskId = getSessionTask(session_id);
     if (existingTaskId) {
       const status = await getTaskStatus(existingTaskId);
       if (status) {
@@ -106,7 +125,7 @@ export async function POST(req: NextRequest) {
       ...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
     };
 
-    sessionToTaskId.set(session_id, taskId);
+    setSessionTask(session_id, taskId);
 
     const initialStatus = {
       status: 'queued',

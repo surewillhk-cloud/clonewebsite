@@ -6,11 +6,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadApkToR2, isR2Configured } from '@/lib/storage/r2';
+import { getAuthUserId } from '@/lib/api-auth';
 
 const MAX_APK_SIZE_MB = 100;
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await getAuthUserId(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (!isR2Configured()) {
       return NextResponse.json(
         { error: 'R2 storage not configured. APK upload unavailable.' },

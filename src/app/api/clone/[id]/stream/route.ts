@@ -3,8 +3,10 @@
  * SSE 流式推送克隆任务进度
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createCloneEventStream } from '@/lib/events/emitter';
+import { getAuthUserId } from '@/lib/api-auth';
+import { getTaskOwner } from '@/lib/task-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,16 @@ export async function GET(
 
   if (!taskId) {
     return new Response('Missing task ID', { status: 400 });
+  }
+
+  const userId = await getAuthUserId(req);
+  if (!userId) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const owner = await getTaskOwner(taskId);
+  if (!owner || owner !== userId) {
+    return new Response('Forbidden', { status: 403 });
   }
 
   const stream = createCloneEventStream(taskId);

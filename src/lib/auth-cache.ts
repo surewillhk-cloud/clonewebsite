@@ -4,6 +4,7 @@
  */
 
 const TTL_MS = 10 * 60 * 1000;
+const MAX_SIZE = 1000;
 
 interface CacheEntry {
   cookieString: string;
@@ -25,6 +26,10 @@ function gc() {
 
 export function set(token: string, cookieString: string): void {
   gc();
+  if (cache.size >= MAX_SIZE) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey) cache.delete(oldestKey);
+  }
   cache.set(token, {
     cookieString,
     expiresAt: Date.now() + TTL_MS,

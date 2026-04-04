@@ -78,14 +78,8 @@ export function useCloneStatus(taskId: string | null, pollInterval = 3000) {
         }
 
         if (eventData.type === 'done') {
-          setData((prev) => prev ? {
-            ...prev,
-            status: 'done',
-            progress: eventData.progress ?? 100,
-            currentStep: eventData.currentStep || '完成',
-            qualityScore: (eventData.data?.qualityScore as number) ?? null,
-          } : null);
           eventSource.close();
+          fetchStatus();
           return;
         }
 

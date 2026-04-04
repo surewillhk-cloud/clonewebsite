@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Migration disabled in production' }, { status: 403 });
+  }
   if (!isDbConfigured()) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
   }
@@ -96,7 +99,7 @@ export async function GET() {
     console.error('[migration]', err);
     return NextResponse.json({ 
       error: 'Migration failed', 
-      details: err instanceof Error ? err.message : String(err),
+      details: 'Internal server error',
       partialResults: results
     }, { status: 500 });
   }

@@ -9,7 +9,7 @@ import { query } from '@/lib/db';
 import { z } from 'zod';
 
 const schema = z.object({
-  delta: z.number().int(),
+  delta: z.number().int().min(-100000).max(100000),
   reason: z.string().max(500).optional(),
 });
 
