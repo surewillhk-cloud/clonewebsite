@@ -65,7 +65,7 @@ function RegisterForm() {
           sessionStorage.setItem('ch007-ref', refCode);
         }
       }
-      router.push('/dashboard');
+      router.push('/generate');
       router.refresh();
     } finally {
       setLoading(false);
@@ -74,7 +74,7 @@ function RegisterForm() {
 
   const handleGoogleSignUp = () => {
     setGoogleLoading(true);
-    signIn('google', { callbackUrl: '/dashboard' });
+    signIn('google', { callbackUrl: '/generate' });
   };
 
   return (

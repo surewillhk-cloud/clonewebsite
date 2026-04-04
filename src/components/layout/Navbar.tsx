@@ -56,7 +56,7 @@ export function Navbar() {
               {t.common.login}
             </Link>
             <Link
-              href="/clone/new"
+              href="/generate"
               className="btn-primary"
             >
               {t.common.cta}

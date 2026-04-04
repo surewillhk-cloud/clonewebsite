@@ -29,7 +29,7 @@ export default function LoginPage() {
         setError(result.error);
         return;
       }
-      router.push('/dashboard');
+      router.push('/generate');
       router.refresh();
     } finally {
       setLoading(false);
@@ -38,7 +38,7 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = () => {
     setGoogleLoading(true);
-    signIn('google', { callbackUrl: '/dashboard' });
+    signIn('google', { callbackUrl: '/generate' });
   };
 
   return (
