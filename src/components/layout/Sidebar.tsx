@@ -138,23 +138,23 @@ export function Sidebar() {
       </div>
 
       {/* Main Nav */}
-      <nav className="flex flex-col gap-1 px-3 pt-4">
+      <nav className={`flex flex-col pt-4 transition-all duration-300 ${collapsed ? 'gap-0.5 px-2' : 'gap-1 px-3'}`}>
         {navItems.map((item) => {
           const active = isActive(item.href, item.matchPartial);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
+              className={`group flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ${
                 active
                   ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
                   : 'text-[var(--muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]'
-              } ${collapsed ? 'justify-center' : ''}`}
+              } ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'}`}
             >
               <span className="shrink-0 transition-transform duration-200 group-hover:scale-110">
                 {item.icon}
               </span>
-              <span className={`transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+              <span className={`whitespace-nowrap transition-all duration-200 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100'}`}>
                 {item.label}
               </span>
             </Link>
@@ -163,26 +163,26 @@ export function Sidebar() {
       </nav>
 
       {/* Billing Section */}
-      <div className={`mt-6 px-3 pb-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-[var(--muted-dark)] transition-opacity duration-200 ${collapsed ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`mt-6 pb-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-[var(--muted-dark)] transition-all duration-300 ${collapsed ? 'opacity-0 h-0 overflow-hidden px-2' : 'opacity-100 px-3'}`}>
         {t.sidebar.billing}
       </div>
-      <nav className="flex flex-col gap-1 px-3">
+      <nav className={`flex flex-col transition-all duration-300 ${collapsed ? 'gap-0.5 px-2' : 'gap-1 px-3'}`}>
         {billingItems.map((item) => {
           const active = isActive(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200 ${
+              className={`group flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ${
                 active
                   ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
                   : 'text-[var(--muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text)]'
-              } ${collapsed ? 'justify-center' : ''}`}
+              } ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'}`}
             >
               <span className="shrink-0 transition-transform duration-200 group-hover:scale-110">
                 {item.icon}
               </span>
-              <span className={`transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+              <span className={`whitespace-nowrap transition-all duration-200 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100'}`}>
                 {item.label}
               </span>
             </Link>
@@ -191,7 +191,7 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom - Usage + Logout */}
-      <div className={`mt-auto border-t border-[var(--border-faint)] transition-all duration-300 ${collapsed ? 'p-3' : 'p-5'}`}>
+      <div className={`mt-auto border-t border-[var(--border-faint)] transition-all duration-300 ${collapsed ? 'p-2' : 'p-5'}`}>
         {!collapsed && (
           <>
             <div className="mb-2 flex justify-between text-[11px] text-[var(--muted)]">
@@ -206,10 +206,10 @@ export function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-[13px] text-[var(--muted)] transition-all duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text)] ${collapsed ? 'justify-center' : ''}`}
+          className={`flex items-center rounded-xl text-[13px] text-[var(--muted)] transition-all duration-200 hover:bg-[var(--surface-hover)] hover:text-[var(--text)] ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5 w-full'}`}
         >
           <span className="shrink-0"><LogoutIcon /></span>
-          <span className={`transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+          <span className={`whitespace-nowrap transition-all duration-200 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100'}`}>
             {t.sidebar.logout}
           </span>
         </button>
