@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { FileTree } from '@/components/generate/FileTree';
 import { CodeViewer } from '@/components/generate/CodeViewer';
@@ -26,6 +27,8 @@ interface ChatMessage {
 
 export default function GeneratePage() {
   const t = useTranslation();
+  const searchParams = useSearchParams();
+  const cloneId = searchParams.get('cloneId');
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'code' | 'preview'>('code');
@@ -33,6 +36,60 @@ export default function GeneratePage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingClone, setLoadingClone] = useState(false);
+  const [cloneInfo, setCloneInfo] = useState<{ taskId: string; source: string } | null>(null);
+
+  // 加载克隆任务的文件
+  useEffect(() => {
+    if (!cloneId) return;
+
+    let cancelled = false;
+    setLoadingClone(true);
+
+    fetch(`/api/clone/${cloneId}/files`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.files && data.files.length > 0) {
+          const fileNodes: FileNode[] = data.files.map((f: { path: string; content: string }) => ({
+            name: f.path.split('/').pop() || f.path,
+            path: f.path,
+            content: f.content,
+            type: 'file' as const,
+          }));
+          setFiles(fileNodes);
+          setSelectedFile(fileNodes[0].path);
+          setCloneInfo({ taskId: data.taskId, source: data.source });
+          // Add system message
+          setMessages([{
+            id: `msg-${Date.now()}`,
+            role: 'system',
+            content: `已加载克隆项目（${fileNodes.length} 个文件）。你可以通过对话修改代码，比如："把标题改成 XXX" 或 "添加一个 Pricing 区块"。`,
+            timestamp: Date.now(),
+          }]);
+        } else {
+          setMessages([{
+            id: `msg-${Date.now()}`,
+            role: 'system',
+            content: data.message || '无法加载克隆文件，请尝试重新克隆。',
+            timestamp: Date.now(),
+          }]);
+        }
+        setLoadingClone(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMessages([{
+          id: `msg-${Date.now()}`,
+          role: 'system',
+          content: '加载克隆文件失败，请重试。',
+          timestamp: Date.now(),
+        }]);
+        setLoadingClone(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [cloneId]);
 
   const handleSendMessage = useCallback(async (content: string) => {
     const userMsg: ChatMessage = {
@@ -156,12 +213,31 @@ export default function GeneratePage() {
   return (
     <div className="flex h-full overflow-hidden bg-[var(--bg)]">
       {/* Left: File Tree */}
-      <div className="flex-shrink-0 w-[260px] border-r border-[var(--border-faint)] bg-[var(--surface)] overflow-hidden">
-        <FileTree
-          files={files}
-          selectedFile={selectedFile}
-          onSelectFile={setSelectedFile}
-        />
+      <div className="flex-shrink-0 w-[260px] border-r border-[var(--border-faint)] bg-[var(--surface)] overflow-hidden flex flex-col">
+        {cloneInfo && (
+          <div className="px-3 py-2 border-b border-[var(--border-faint)] bg-[rgba(0,208,132,0.06)]">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--green)]">
+              🔗 克隆项目
+            </div>
+            <div className="text-[10px] text-[var(--muted)] font-mono truncate">
+              {cloneInfo.taskId.slice(0, 16)}...
+            </div>
+          </div>
+        )}
+        {loadingClone ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border2)] border-t-[var(--accent)] mx-auto mb-3" />
+              <div className="text-[12px] text-[var(--muted)]">加载克隆文件中...</div>
+            </div>
+          </div>
+        ) : (
+          <FileTree
+            files={files}
+            selectedFile={selectedFile}
+            onSelectFile={setSelectedFile}
+          />
+        )}
       </div>
 
       {/* Center: Code / Preview */}
@@ -171,6 +247,11 @@ export default function GeneratePage() {
           <div className="flex items-center gap-2">
             {selectedFile && (
               <span className="text-[12px] text-[var(--muted)] font-mono">{selectedFile}</span>
+            )}
+            {cloneInfo && (
+              <span className="text-[10px] bg-[rgba(0,208,132,0.1)] text-[var(--green)] px-2 py-0.5 rounded-full">
+                克隆 · {files.length} 文件
+              </span>
             )}
           </div>
           <CodePreviewToggle mode={viewMode} onToggle={setViewMode} />

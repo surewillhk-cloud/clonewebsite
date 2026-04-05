@@ -366,6 +366,8 @@ export const en = {
   cloneResult: {
     success: 'Clone complete',
     successExclaim: 'Clone complete!',
+    editInPlatform: '🚀 Edit in Platform',
+    editInPlatformHint: 'Continue editing code in AI editor',
     download: 'Download',
     downloadExpo: 'Download Expo package',
     downloadWeb: 'Download code',

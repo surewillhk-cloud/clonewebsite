@@ -366,6 +366,8 @@ export const zh = {
   cloneResult: {
     success: '克隆完成',
     successExclaim: '克隆完成！',
+    editInPlatform: '🚀 在平台编辑',
+    editInPlatformHint: '在 AI 编辑器中继续修改代码',
     download: '下载代码包',
     downloadExpo: '下载 Expo 代码包',
     downloadWeb: '下载代码包',

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { DeployCard } from '@/components/hosting/DeployCard';
 import { HostDeployButton } from '@/components/hosting/HostDeployButton';
 import { ClonePreviewButton } from '@/components/clone/ClonePreviewButton';
@@ -27,10 +28,18 @@ export default async function CloneResultPage({ params }: { params: Promise<{ id
           </div>
         </div>
         <div className="flex gap-3">
+          {task?.cloneType !== 'app' && (
+            <Link
+              href={`/generate?cloneId=${id}`}
+              className="inline-flex items-center gap-2 rounded-[10px] bg-gradient-to-r from-[var(--accent)] to-[#6B91FF] px-6 py-2.5 text-[13px] font-medium text-white shadow-[0_0_20px_rgba(79,126,255,0.3)] transition-all hover:shadow-[0_0_30px_rgba(79,126,255,0.4)] hover:scale-[1.02]"
+            >
+              {t.cloneResult.editInPlatform}
+            </Link>
+          )}
           {task?.cloneType !== 'app' && <ClonePreviewButton taskId={id} />}
           <a
             href={downloadHref}
-            className="inline-block rounded-[10px] bg-[var(--accent)] px-6 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#6B91FF]"
+            className="inline-block rounded-[10px] border border-[var(--border2)] bg-[var(--surface)] px-6 py-2.5 text-[13px] font-medium text-[var(--text)] transition-colors hover:bg-[var(--surface2)]"
             download
           >
             ⬇ {task?.cloneType === 'app' ? t.cloneResult.downloadExpo : t.cloneResult.downloadWeb}
@@ -38,6 +47,11 @@ export default async function CloneResultPage({ params }: { params: Promise<{ id
           {task?.cloneType !== 'app' && <HostDeployButton taskId={id} />}
         </div>
       </div>
+      {task?.cloneType !== 'app' && (
+        <div className="mb-2 -mt-4 text-[12px] text-[var(--muted)]">
+          {t.cloneResult.editInPlatformHint}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* Preview Panel */}
