@@ -75,11 +75,11 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
     return (
       <div className="overflow-hidden rounded-[14px] border border-[var(--border-faint)] bg-[var(--surface)]">
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-3 text-4xl">📋</div>
+          <div className="mb-3 text-4xl">✨</div>
           <div className="mb-1 font-heading text-[15px] font-bold">{t.dashboardTasks.noTasks}</div>
           <div className="mb-5 text-[13px] text-[var(--muted)]">{t.dashboardTasks.createFirst}</div>
-          <Link href="/clone/new" className="btn-primary">
-            ＋ {t.dashboard.newClone}
+          <Link href="/generate" className="btn-primary">
+            ＋ {t.dashboard.newProject}
           </Link>
         </div>
       </div>
@@ -142,33 +142,31 @@ export function DashboardTasks({ initialTasks }: DashboardTasksProps = {} as Das
             {row.status === 'done' ? (
               <>
                 <Link
-                  href={`/clone/${row.id}/result`}
+                  href={`/generate?cloneId=${row.id}`}
                   className="rounded-md border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all"
                 >
-                  {t.dashboardTasks.preview}
+                  ✏️ {t.dashboardTasks.edit}
                 </Link>
                 <a
                   href={`/api/clone/${row.id}/download`}
                   className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-all"
                   download
                 >
-                  {t.dashboardTasks.download}
+                  ⬇
                 </a>
               </>
             ) : row.status === 'failed' ? (
               <Link
-                href="/clone/new"
+                href="/generate"
                 className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-all"
               >
                 {t.dashboardTasks.retry}
               </Link>
             ) : (
-              <Link
-                href={`/clone/${row.id}`}
-                className="rounded-md border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all"
-              >
-                {t.dashboardTasks.viewProgress}
-              </Link>
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent)]" />
+                {row.progress}%
+              </span>
             )}
           </div>
         </div>
