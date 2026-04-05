@@ -15,9 +15,10 @@ interface ChatPanelProps {
   isStreaming: boolean;
   streamingContent: string;
   onSendMessage: (content: string) => void;
+  hasFiles?: boolean;
 }
 
-export function ChatPanel({ messages, isStreaming, streamingContent, onSendMessage }: ChatPanelProps) {
+export function ChatPanel({ messages, isStreaming, streamingContent, onSendMessage, hasFiles }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -64,12 +65,14 @@ export function ChatPanel({ messages, isStreaming, streamingContent, onSendMessa
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && !streamingContent && (
           <div className="text-center py-12">
-            <div className="text-3xl mb-3">🤖</div>
+            <div className="text-3xl mb-3">{hasFiles ? '🛠' : '🤖'}</div>
             <div className="text-[13px] text-[var(--text-secondary)] mb-2">
-              Describe what you want to build
+              {hasFiles ? '通过对话修改代码' : 'Describe what you want to build'}
             </div>
             <div className="text-[12px] text-[var(--muted)]">
-              e.g. "Create a landing page for a SaaS product"
+              {hasFiles
+                ? '"把标题改成 Welcome" · "加一个 Pricing 区块" · "换成深色主题"'
+                : 'e.g. "Create a landing page for a SaaS product"'}
             </div>
           </div>
         )}
@@ -131,7 +134,7 @@ export function ChatPanel({ messages, isStreaming, streamingContent, onSendMessa
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onInput={handleTextareaInput}
-            placeholder="Describe what to build or modify..."
+            placeholder={hasFiles ? "描述你想修改的内容..." : "Describe what to build or modify..."}
             rows={1}
             className="flex-1 bg-transparent text-[13px] text-[var(--text)] outline-none placeholder:text-[var(--muted-dark)] resize-none max-h-[120px] px-2 py-1.5"
             disabled={isStreaming}
